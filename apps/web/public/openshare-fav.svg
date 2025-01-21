@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="b" data-name="openshare-fav" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <style>
+      .c {
+        fill: #fff;
+      }
+
+      .d {
+        stroke-width: 32px;
+      }
+
+      .d, .e, .f, .g, .h {
+        fill: none;
+        stroke: #000;
+        stroke-linecap: round;
+        stroke-miterlimit: 10;
+      }
+
+      .e {
+        stroke-width: 25px;
+      }
+
+      .f {
+        stroke-width: 31px;
+      }
+
+      .g {
+        stroke-width: 30px;
+      }
+
+      .h {
+        stroke-width: 29px;
+      }
+    </style>
+  </defs>
+  <path class="c" d="M387,0H125C55.96,0,0,55.96,0,125v64.62h128.62v20H0v20h128.62v20H0v19h128.62v20H0v98.38C0,456.04,55.96,512,125,512h262c69.04,0,125-55.96,125-125V125C512,55.96,456.04,0,387,0Z"/>
+  <g>
+    <path class="d" d="M121.18,458.01c0-153.63,126.41-280.04,280.04-280.04"/>
+    <path class="f" d="M185.81,458.01c0-118.17,97.24-215.42,215.42-215.42"/>
+    <path class="g" d="M250.43,458.01c0-82.72,68.07-150.79,150.79-150.79"/>
+    <path class="h" d="M315.06,458.01c0-47.27,38.9-86.17,86.17-86.17"/>
+  </g>
+  <g>
+    <line class="e" x1="108.73" y1="136.89" x2="241.79" y2="136.89"/>
+    <line class="e" x1="202.54" y1="96.97" x2="242.46" y2="136.89"/>
+    <line class="e" x1="202.54" y1="176.81" x2="242.46" y2="136.89"/>
+  </g>
+  <g>
+    <line class="e" x1="393.38" y1="77.54" x2="260.32" y2="77.54"/>
+    <line class="e" x1="299.57" y1="117.46" x2="259.65" y2="77.54"/>
+    <line class="e" x1="299.57" y1="37.62" x2="259.65" y2="77.54"/>
+  </g>
+</svg>
