@@ -1,13 +1,11 @@
-import { Center, Heading, NativeImg } from "@yamada-ui/react";
-import openShareLogo from "./assets/openshare.svg";
+import Header from "@/components/Header";
+import Sender from "@/components/Sender";
 
 function App() {
   return (
     <>
-      <Center>
-        <Heading>Welcome Open Share</Heading>
-        <NativeImg src={openShareLogo} h="xl" />
-      </Center>
+      <Header />
+      <Sender />
     </>
   );
 }
