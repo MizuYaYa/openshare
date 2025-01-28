@@ -1,14 +1,19 @@
 {
   "name": "@openshare/backend",
+  "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy --minify"
+    "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
-    "hono": "^4.6.17"
+    "@hono/node-server": "^1.13.7",
+    "@hono/node-ws": "^1.0.6",
+    "@hono/zod-validator": "^0.4.2",
+    "hono": "^4.6.19",
+    "log4js": "^6.9.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250109.0",
-    "wrangler": "^3.101.0"
+    "@types/node": "^20.11.17",
+    "tsx": "^4.7.1"
   }
 }
