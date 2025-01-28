@@ -45,7 +45,15 @@
     {
       "include": ["apps/backend/**"],
       "linter": {
-        "rules": {}
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off",
+            "noConsole": "off"
+          },
+          "correctness": {
+            "noNodejsModules": "off"
+          }
+        }
       }
     }
   ]
