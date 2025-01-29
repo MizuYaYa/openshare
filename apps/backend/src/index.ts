@@ -16,7 +16,7 @@ app.use(compress(), etag(), secureHeaders(), logger());
 
 app.get(
   "/host",
-  upgradeWebSocket(c => {
+  upgradeWebSocket(() => {
     console.log("WebSocket connection established");
     return {
       onMessage(event, ws) {
@@ -34,7 +34,9 @@ app.get(
       }
     };
   }),
-);
+).get("/", (c) => {
+  return c.text("Hello, Hono!");
+});
 
 const port = 3000;
 console.log(`Server is running on https://localhost:${port}`);
@@ -46,6 +48,8 @@ const server = serve({
   serverOptions: {
     key: readFileSync("localhost-privkey.pem"),
     cert: readFileSync("localhost-cert.pem"),
+    // biome-ignore lint/style/useNamingConvention: しょうがないので無視
+    allowHTTP1: true
   },
 });
 injectWebSocket(server);

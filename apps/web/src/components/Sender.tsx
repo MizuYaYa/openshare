@@ -7,7 +7,7 @@ export default function Sender() {
 
   useEffect(() => {
     try {
-      const ws = new WebSocket("ws://localhost:3000/host");
+      const ws = new WebSocket(import.meta.env.VITE_WS_API_URL);
       ws.addEventListener("open", () => {
         ws.send("Hello, WebSocket!");
         setWsState(ws.readyState.toString());
@@ -20,10 +20,10 @@ export default function Sender() {
         console.log("Connection closed");
       });
       ws.addEventListener("error", error => {
-        console.error(`event WebSocket error: ${error}`);
+        console.error("event WebSocket error:", error);
       });
     } catch (error) {
-      console.error(`WebSocket error: ${error}`);
+      console.error("WebSocket error:", error);
     }
   }, []);
 
