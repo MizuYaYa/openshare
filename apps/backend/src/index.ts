@@ -11,12 +11,24 @@ import { requestId } from "hono/request-id";
 import { ulid } from "ulid";
 import { getConnInfo } from '@hono/node-server/conninfo'
 import type { WSContext } from "hono/ws";
+import log4js from "log4js";
+
+const log = log4js.getLogger();
+log.level = "all";
 
 const app = new Hono();
 
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
-app.use(compress(), etag(), secureHeaders(), logger(), requestId({generator: () => ulid()}));
+app.use(
+  compress(),
+  etag(),
+  secureHeaders(),
+  logger((str, ...rest) => {
+    log.trace(str, ...rest);
+  }),
+  requestId({ generator: () => ulid() }),
+);
 
 
 const connections = new Map<string, {ws: WSContext<WebSocket>, clientIp: string | undefined }[]>();
@@ -24,18 +36,19 @@ const connections = new Map<string, {ws: WSContext<WebSocket>, clientIp: string 
 app.get(
   "/host",
   upgradeWebSocket((c) => {
-    console.log("WebSocket connection established");
+    const { remote } = getConnInfo(c);
+
+    log.debug(`WS connection established from ${remote.address} using ${remote.addressType} ${c.get("requestId")}`);
     return {
       onMessage(event, ws) {
-        console.log(`Message from client: ${event.data}`);
-
+        log.trace(`Message from client: ${event.data}`);
       },
       onClose: () => {
-        console.log("Connection closed");
+        log.debug(`${c.get("requestId")} connection closed`);
         connections.delete(c.get("requestId"))
       },
       onOpen: (event, ws) => {
-        console.log("Connection opened");
+        log.debug(`connection opened ${c.get("requestId")}`);
         const info = getConnInfo(c)
         const isConnection = connections.get(c.get("requestId"))
         if (isConnection) {
@@ -46,7 +59,7 @@ app.get(
         ws.send(`Hello from server! ${c.get("requestId")}`);
       },
       onError: error => {
-        console.error(`WebSocket error: ${error}`);
+        log.error("WebSocket error: ", error);
       }
     };
   }),
@@ -57,7 +70,7 @@ app.get(
 });
 
 const port = 3000;
-console.log(`Server is running on https://localhost:${port}`);
+log.info(`Server is running on https://localhost:${port}`);
 
 const server = serve({
   fetch: app.fetch,
