@@ -11,6 +11,7 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import type { WSContext } from "hono/ws";
 import log4js from "log4js";
+import type { ClientData, ReciverMessage, SenderMessage, ServerMessage } from "openshare";
 import { ulid } from "ulid";
 
 const log = log4js.getLogger();
@@ -32,9 +33,10 @@ app.use(
 
 type Connection = {
   ws: WSContext<WebSocket>;
+  clientData?: ClientData;
   ip?: string;
 };
-const connections = new Map<string, Connection & { recivers?: Connection[] }>();
+const connections = new Map<string, Connection & { recivers?: (Connection & { id: string })[] }>();
 
 app
   .get(
@@ -47,6 +49,20 @@ app
       return {
         onMessage(event, ws) {
           log.trace(`Message from client: ${event.data}`);
+          const data: SenderMessage = JSON.parse(event.data.toString());
+          switch (data.type) {
+            case "clientData": {
+              const connection = connections.get(roomId);
+              if (connection) {
+                connection.clientData = data.message;
+              }
+
+              break;
+            }
+
+            default:
+              break;
+          }
         },
         onClose: () => {
           log.debug(`connection closed ${roomId}`);
@@ -56,7 +72,69 @@ app
           log.debug(`connection opened ${roomId}`);
 
           connections.set(roomId, { ws, ip: remote.address });
-          ws.send(`Hello from server! ${roomId}`);
+          const c: ServerMessage = { type: "roomId", message: roomId };
+          ws.send(JSON.stringify(c));
+        },
+        onError: error => {
+          log.error("WebSocket error: ", error);
+        },
+      };
+    }),
+  )
+  .get(
+    "/connect/:roomId",
+    upgradeWebSocket(c => {
+      const { remote } = getConnInfo(c);
+      const roomId = c.req.param("roomId");
+      const reciverId = c.get("requestId");
+
+      log.debug(`WS connection established from ${remote.address} using ${remote.addressType} ${roomId}`);
+      return {
+        onMessage(event, ws) {
+          log.trace(`Message from reciver: ${event.data.toString()}`);
+          const data: ReciverMessage = JSON.parse(event.data.toString());
+          switch (data.type) {
+            case "connectionRequest": {
+              const sender = connections.get(roomId);
+              if (!sender) {
+                throw new Error("sender not found");
+              }
+
+              const reciver = { ws, ip: remote.address, clientData: data.message.clientData, id: reciverId };
+              if (sender.recivers) {
+                sender.recivers.push(reciver);
+              } else {
+                sender.recivers = [reciver];
+              }
+
+              const c = { type: "connectionRequest", message: data.message.sdp };
+              sender.ws.send(JSON.stringify(c));
+
+              break;
+            }
+            default:
+              break;
+          }
+        },
+        onClose: () => {
+          log.debug(`connection closed ${roomId}`);
+          const sender = connections.get(roomId);
+          if (sender) {
+            const reciverIndex = sender.recivers?.findIndex(r => r.id === reciverId);
+            if (reciverIndex !== undefined) {
+              sender.recivers?.splice(reciverIndex, 1);
+            }
+          }
+        },
+        onOpen: (event, ws) => {
+          log.debug(`connection opened ${roomId}`);
+
+          if (!connections.has(roomId)) {
+            const r: ServerMessage = { type: "error", message: "INVALID_ROOM_ID" };
+            ws.send(JSON.stringify(r));
+            ws.close();
+            return;
+          }
         },
         onError: error => {
           log.error("WebSocket error: ", error);
@@ -66,8 +144,13 @@ app
   )
   .get("/", c => {
     return c.json({
-      connections: Array.from(connections).map(([roomId, connections]) => {
-        return { roomId, senderIp: connections.ip, reciverIps: connections.recivers };
+      connections: Array.from(connections).map(([roomId, connection]) => {
+        return {
+          roomId,
+          senderIp: connection.ip,
+          clientData: connection.clientData,
+          recivers: connection.recivers?.map(r => ({ ip: r.ip, clientData: r.clientData, id: r.id })),
+        };
       }),
       numberOfConnections: connections.size,
     });
