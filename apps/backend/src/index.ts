@@ -30,8 +30,11 @@ app.use(
   requestId({ generator: () => ulid() }),
 );
 
-
-const connections = new Map<string, {ws: WSContext<WebSocket>, clientIp: string | undefined }[]>();
+type Connection = {
+  ws: WSContext<WebSocket>;
+  ip?: string;
+};
+const connections = new Map<string, Connection & { recivers?: Connection[] }>();
 
 app.get(
   "/host",
@@ -50,12 +53,8 @@ app.get(
       },
       onOpen: (event, ws) => {
         log.debug(`connection opened ${roomId}`);
-        const isConnection = connections.get(roomId)
-        if (isConnection) {
-          isConnection.push({ws, clientIp: remote.address})
-        } else {
-          connections.set(roomId, [{ws, clientIp: remote.address}])
-        }
+
+        connections.set(roomId, { ws, ip: remote.address });
         ws.send(`Hello from server! ${roomId}`);
       },
       onError: error => {
@@ -64,9 +63,12 @@ app.get(
     };
   }),
 ).get("/", (c) => {
-
-  // こういう形式になる {connections: [{roomId: string, clientIps: string[]}]}
-  return c.json({connections: Array.from(connections).map(([roomId, connections]) => { return {roomId, clientIps: connections.map(connection => connection.clientIp)}})});
+  return c.json({
+    connections: Array.from(connections).map(([roomId, connections]) => {
+      return { roomId, senderIp: connections.ip, reciverIps: connections.recivers };
+    }),
+    numberOfConnections: connections.size,
+  });
 });
 
 const port = 3000;
