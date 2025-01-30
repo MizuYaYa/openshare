@@ -1,17 +1,17 @@
 import { readFileSync } from "node:fs";
 import { createSecureServer } from "node:http2";
 import { serve } from "@hono/node-server";
+import { getConnInfo } from "@hono/node-server/conninfo";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { Hono } from "hono";
 import { compress } from "hono/compress";
 import { etag } from "hono/etag";
-import { secureHeaders } from "hono/secure-headers";
 import { logger } from "hono/logger";
 import { requestId } from "hono/request-id";
-import { ulid } from "ulid";
-import { getConnInfo } from '@hono/node-server/conninfo'
+import { secureHeaders } from "hono/secure-headers";
 import type { WSContext } from "hono/ws";
 import log4js from "log4js";
+import { ulid } from "ulid";
 
 const log = log4js.getLogger();
 log.level = "all";
@@ -36,40 +36,42 @@ type Connection = {
 };
 const connections = new Map<string, Connection & { recivers?: Connection[] }>();
 
-app.get(
-  "/host",
-  upgradeWebSocket((c) => {
-    const { remote } = getConnInfo(c);
-    const roomId = c.get("requestId");
+app
+  .get(
+    "/host",
+    upgradeWebSocket(c => {
+      const { remote } = getConnInfo(c);
+      const roomId = c.get("requestId");
 
-    log.debug(`WS connection established from ${remote.address} using ${remote.addressType} ${roomId}`);
-    return {
-      onMessage(event, ws) {
-        log.trace(`Message from client: ${event.data}`);
-      },
-      onClose: () => {
-        log.debug(`connection closed ${roomId}`);
-        connections.delete(roomId);
-      },
-      onOpen: (event, ws) => {
-        log.debug(`connection opened ${roomId}`);
+      log.debug(`WS connection established from ${remote.address} using ${remote.addressType} ${roomId}`);
+      return {
+        onMessage(event, ws) {
+          log.trace(`Message from client: ${event.data}`);
+        },
+        onClose: () => {
+          log.debug(`connection closed ${roomId}`);
+          connections.delete(roomId);
+        },
+        onOpen: (event, ws) => {
+          log.debug(`connection opened ${roomId}`);
 
-        connections.set(roomId, { ws, ip: remote.address });
-        ws.send(`Hello from server! ${roomId}`);
-      },
-      onError: error => {
-        log.error("WebSocket error: ", error);
-      }
-    };
-  }),
-).get("/", (c) => {
-  return c.json({
-    connections: Array.from(connections).map(([roomId, connections]) => {
-      return { roomId, senderIp: connections.ip, reciverIps: connections.recivers };
+          connections.set(roomId, { ws, ip: remote.address });
+          ws.send(`Hello from server! ${roomId}`);
+        },
+        onError: error => {
+          log.error("WebSocket error: ", error);
+        },
+      };
     }),
-    numberOfConnections: connections.size,
+  )
+  .get("/", c => {
+    return c.json({
+      connections: Array.from(connections).map(([roomId, connections]) => {
+        return { roomId, senderIp: connections.ip, reciverIps: connections.recivers };
+      }),
+      numberOfConnections: connections.size,
+    });
   });
-});
 
 const port = 3000;
 log.info(`Server is running on https://localhost:${port}`);
@@ -82,7 +84,7 @@ const server = serve({
     key: readFileSync("localhost-privkey.pem"),
     cert: readFileSync("localhost-cert.pem"),
     // biome-ignore lint/style/useNamingConvention: しょうがないので無視
-    allowHTTP1: true
+    allowHTTP1: true,
   },
 });
 injectWebSocket(server);

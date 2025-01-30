@@ -32,20 +32,19 @@ export default function Sender() {
 
   return (
     <>
-    <Center>
-      <Dropzone multiple maxSize={maxTransferSize} maxFiles={5} mx="3xl" size="sm">
-        <Text fontSize="xl">
-          ドラッグ&ドロップかクリックしてファイルを追加
-          <br />
-          最大
-          <FormatByte value={maxTransferSize} />
-          <br />
-          {maxFiles}ファイルまで
-        </Text>
-      </Dropzone>
-
-    </Center>
-    <Heading>WebSocket State: {wsState}</Heading>
+      <Center>
+        <Dropzone multiple maxSize={maxTransferSize} maxFiles={5} mx="3xl" size="sm">
+          <Text fontSize="xl">
+            ドラッグ&ドロップかクリックしてファイルを追加
+            <br />
+            最大
+            <FormatByte value={maxTransferSize} />
+            <br />
+            {maxFiles}ファイルまで
+          </Text>
+        </Dropzone>
+      </Center>
+      <Heading>WebSocket State: {wsState}</Heading>
     </>
   );
 }

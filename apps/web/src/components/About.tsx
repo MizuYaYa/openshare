@@ -1,5 +1,5 @@
-import { Box, Center, Heading, NativeImg, Text } from "@yamada-ui/react";
 import openShareLogo from "@/assets/openshare.svg";
+import { Box, Center, Heading, NativeImg, Text } from "@yamada-ui/react";
 
 export default function About() {
   return (
