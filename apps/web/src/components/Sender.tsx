@@ -31,6 +31,7 @@ export default function Sender() {
   const maxFiles = 5;
 
   return (
+    <>
     <Center>
       <Dropzone multiple maxSize={maxTransferSize} maxFiles={5} mx="3xl" size="sm">
         <Text fontSize="xl">
@@ -42,7 +43,9 @@ export default function Sender() {
           {maxFiles}ファイルまで
         </Text>
       </Dropzone>
-      <Heading>WebSocket State: {wsState}</Heading>
+
     </Center>
+    <Heading>WebSocket State: {wsState}</Heading>
+    </>
   );
 }
