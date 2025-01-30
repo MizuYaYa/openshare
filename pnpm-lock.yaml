@@ -29,6 +29,9 @@ importers:
       log4js:
         specifier: ^6.9.1
         version: 6.9.1
+      ulid:
+        specifier: ^2.3.0
+        version: 2.3.0
       zod:
         specifier: ^3.24.1
         version: 3.24.1
@@ -1750,6 +1753,10 @@ packages:
   typescript@5.6.3:
     resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
     engines: {node: '>=14.17'}
+    hasBin: true
+
+  ulid@2.3.0:
+    resolution: {integrity: sha512-keqHubrlpvT6G2wH0OEfSW4mquYRcbe/J8NMmveoQOjUqmo+hXtO+ORCpWhdbZ7k72UtY61BL7haGxW6enBnjw==}
     hasBin: true
 
   undici-types@6.19.8:
@@ -4165,6 +4172,8 @@ snapshots:
   turbo-stream@2.4.0: {}
 
   typescript@5.6.3: {}
+
+  ulid@2.3.0: {}
 
   undici-types@6.19.8: {}
 
