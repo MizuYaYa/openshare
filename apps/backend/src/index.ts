@@ -7,27 +7,43 @@ import { compress } from "hono/compress";
 import { etag } from "hono/etag";
 import { secureHeaders } from "hono/secure-headers";
 import { logger } from "hono/logger";
+import { requestId } from "hono/request-id";
+import { ulid } from "ulid";
+import { getConnInfo } from '@hono/node-server/conninfo'
+import type { WSContext } from "hono/ws";
 
 const app = new Hono();
 
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
-app.use(compress(), etag(), secureHeaders(), logger());
+app.use(compress(), etag(), secureHeaders(), logger(), requestId({generator: () => ulid()}));
+
+
+const connections = new Map<string, {ws: WSContext<WebSocket>, clientIp: string | undefined }[]>();
 
 app.get(
   "/host",
-  upgradeWebSocket(() => {
+  upgradeWebSocket((c) => {
     console.log("WebSocket connection established");
     return {
       onMessage(event, ws) {
         console.log(`Message from client: ${event.data}`);
-        ws.send("Hello from server!");
+
       },
       onClose: () => {
         console.log("Connection closed");
+        connections.delete(c.get("requestId"))
       },
-      onOpen: () => {
+      onOpen: (event, ws) => {
         console.log("Connection opened");
+        const info = getConnInfo(c)
+        const isConnection = connections.get(c.get("requestId"))
+        if (isConnection) {
+          isConnection.push({ws, clientIp: info.remote.address})
+        } else {
+          connections.set(c.get("requestId"), [{ws, clientIp: info.remote.address}])
+        }
+        ws.send(`Hello from server! ${c.get("requestId")}`);
       },
       onError: error => {
         console.error(`WebSocket error: ${error}`);
@@ -35,7 +51,9 @@ app.get(
     };
   }),
 ).get("/", (c) => {
-  return c.text("Hello, Hono!");
+
+  // こういう形式になる {connections: [{roomId: string, clientIps: string[]}]}
+  return c.json({connections: Array.from(connections).map(([roomId, connections]) => { return {roomId, clientIps: connections.map(connection => connection.clientIp)}})});
 });
 
 const port = 3000;
