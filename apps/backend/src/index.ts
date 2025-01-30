@@ -37,26 +37,26 @@ app.get(
   "/host",
   upgradeWebSocket((c) => {
     const { remote } = getConnInfo(c);
+    const roomId = c.get("requestId");
 
-    log.debug(`WS connection established from ${remote.address} using ${remote.addressType} ${c.get("requestId")}`);
+    log.debug(`WS connection established from ${remote.address} using ${remote.addressType} ${roomId}`);
     return {
       onMessage(event, ws) {
         log.trace(`Message from client: ${event.data}`);
       },
       onClose: () => {
-        log.debug(`${c.get("requestId")} connection closed`);
-        connections.delete(c.get("requestId"))
+        log.debug(`connection closed ${roomId}`);
+        connections.delete(roomId);
       },
       onOpen: (event, ws) => {
-        log.debug(`connection opened ${c.get("requestId")}`);
-        const info = getConnInfo(c)
-        const isConnection = connections.get(c.get("requestId"))
+        log.debug(`connection opened ${roomId}`);
+        const isConnection = connections.get(roomId)
         if (isConnection) {
-          isConnection.push({ws, clientIp: info.remote.address})
+          isConnection.push({ws, clientIp: remote.address})
         } else {
-          connections.set(c.get("requestId"), [{ws, clientIp: info.remote.address}])
+          connections.set(roomId, [{ws, clientIp: remote.address}])
         }
-        ws.send(`Hello from server! ${c.get("requestId")}`);
+        ws.send(`Hello from server! ${roomId}`);
       },
       onError: error => {
         log.error("WebSocket error: ", error);
