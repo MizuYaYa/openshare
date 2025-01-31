@@ -59,6 +59,33 @@ app
 
               break;
             }
+            case "connectionResponse": {
+              const connection = connections.get(roomId);
+              if (!connection) {
+                throw new Error("connection not found");
+              }
+              if (data.message.ok) {
+                data.message.sdp;
+
+                const reciver = connection.recivers?.find(r => r.id === data.message.reciverId);
+                if (!reciver) {
+                  const c: ServerMessage = { type: "error", message: "INVALID_RECIVER_ID" };
+                  ws.send(JSON.stringify(c));
+                  return;
+                }
+
+                if (!connection.clientData) {
+                  throw new Error("clientData is empty");
+                }
+                const r: ServerMessage = {
+                  type: "connectionResponse",
+                  message: { ok: true, sdp: data.message.sdp, clientData: connection.clientData },
+                };
+                reciver.ws.send(JSON.stringify(r));
+              }
+
+              break;
+            }
 
             default:
               break;
@@ -66,6 +93,9 @@ app
         },
         onClose: () => {
           log.debug(`connection closed ${roomId}`);
+          for (const reciver of connections.get(roomId)?.recivers || []) {
+            reciver.ws.close();
+          }
           connections.delete(roomId);
         },
         onOpen: (event, ws) => {
@@ -96,8 +126,13 @@ app
           switch (data.type) {
             case "connectionRequest": {
               const sender = connections.get(roomId);
+
               if (!sender) {
-                throw new Error("sender not found");
+                log.debug(`sender not found connection closed ${roomId}`);
+                const r: ServerMessage = { type: "error", message: "INVALID_ROOM_ID" };
+                ws.send(JSON.stringify(r));
+                ws.close();
+                return;
               }
 
               const reciver = { ws, ip: remote.address, clientData: data.message.clientData, id: reciverId };
@@ -107,7 +142,10 @@ app
                 sender.recivers = [reciver];
               }
 
-              const c = { type: "connectionRequest", message: data.message.sdp };
+              const c: ServerMessage = {
+                type: "connectionRequest",
+                message: { sdp: data.message.sdp, clientData: data.message.clientData, id: reciverId },
+              };
               sender.ws.send(JSON.stringify(c));
 
               break;
