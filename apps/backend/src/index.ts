@@ -65,8 +65,6 @@ app
                 throw new Error("connection not found");
               }
               if (data.message.ok) {
-                data.message.sdp;
-
                 const reciver = connection.recivers?.find(r => r.id === data.message.reciverId);
                 if (!reciver) {
                   const c: ServerMessage = { type: "error", message: "INVALID_RECIVER_ID" };
@@ -118,7 +116,7 @@ app
       const roomId = c.req.param("roomId");
       const reciverId = c.get("requestId");
 
-      log.debug(`WS connection established from ${remote.address} using ${remote.addressType} ${roomId}`);
+      log.debug(`reciver WS connection established from ${remote.address} using ${remote.addressType} ${roomId}`);
       return {
         onMessage(event, ws) {
           log.trace(`Message from reciver: ${event.data.toString()}`);
