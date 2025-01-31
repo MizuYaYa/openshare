@@ -36,7 +36,7 @@ type Connection = {
   clientData?: ClientData;
   ip?: string;
 };
-const connections = new Map<string, Connection & { recivers?: (Connection & { id: string })[] }>();
+const connections = new Map<string, Connection & { recivers: (Connection & { id: string })[] }>();
 
 app
   .get(
@@ -101,7 +101,7 @@ app
         onOpen: (event, ws) => {
           log.debug(`connection opened ${roomId}`);
 
-          connections.set(roomId, { ws, ip: remote.address });
+          connections.set(roomId, { ws, ip: remote.address, recivers: [] });
           const c: ServerMessage = { type: "roomId", message: roomId };
           ws.send(JSON.stringify(c));
         },
@@ -135,12 +135,7 @@ app
                 return;
               }
 
-              const reciver = { ws, ip: remote.address, clientData: data.message.clientData, id: reciverId };
-              if (sender.recivers) {
-                sender.recivers.push(reciver);
-              } else {
-                sender.recivers = [reciver];
-              }
+              sender.recivers.push({ ws, ip: remote.address, clientData: data.message.clientData, id: reciverId });
 
               const c: ServerMessage = {
                 type: "connectionRequest",
@@ -159,7 +154,7 @@ app
           const sender = connections.get(roomId);
           if (sender) {
             const reciverIndex = sender.recivers?.findIndex(r => r.id === reciverId);
-            if (reciverIndex !== undefined) {
+            if (reciverIndex !== -1) {
               sender.recivers?.splice(reciverIndex, 1);
             }
           }
