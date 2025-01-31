@@ -21,14 +21,19 @@ export type ConnectionResponseToReciver = { ok: true; sdp: string; clientData: C
 
 export type Error = "INVALID_ROOM_ID" | "INVALID_RECIVER_ID";
 
+export type Ice = { ice: string };
+
+export type IceWithId = Ice & { id: string };
+
 export type ServerMessage =
   | { type: "roomId"; message: RoomId }
   | { type: "connectionRequest"; message: ConnectionRequestWithId }
   | { type: "connectionResponse"; message: ConnectionResponseToReciver }
-  | { type: "error"; message: Error };
+  | { type: "error"; message: Error }
+  | { type: "ice"; message: IceWithId };
 
 export type SenderMessage =
   | { type: "connectionResponse"; message: ConnectionResponse }
   | { type: "clientData"; message: ClientData };
 
-export type ReciverMessage = { type: "connectionRequest"; message: ConnectionRequest };
+export type ReciverMessage = { type: "connectionRequest"; message: ConnectionRequest } | { type: "ice"; message: Ice };

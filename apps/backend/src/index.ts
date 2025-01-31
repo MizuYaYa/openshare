@@ -145,6 +145,21 @@ app
 
               break;
             }
+            case "ice": {
+              const sender = connections.get(roomId);
+              if (!sender) {
+                log.debug(`sender not found connection closed ${roomId}`);
+                const r: ServerMessage = { type: "error", message: "INVALID_ROOM_ID" };
+                ws.send(JSON.stringify(r));
+                ws.close();
+                return;
+              }
+
+              const c: ServerMessage = { type: "ice", message: { ice: data.message.ice, id: reciverId } };
+              sender.ws.send(JSON.stringify(c));
+
+              break;
+            }
             default:
               break;
           }

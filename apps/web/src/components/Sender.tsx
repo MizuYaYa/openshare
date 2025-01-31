@@ -67,6 +67,14 @@ export default function Sender() {
 
             break;
           }
+          case "ice": {
+            const rtc = rtcS.connections.get(data.message.id)?.connection;
+            if (!rtc) {
+              throw new Error("rtc is empty");
+            }
+            await rtc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.message.ice)));
+            break;
+          }
 
           default:
             break;

@@ -42,7 +42,18 @@ export default function Reciver() {
             type: "connectionRequest",
             message: { sdp: JSON.stringify(rtc.localDescription), clientData: { os: osName, browser: browserName } },
           };
-          ws.send(JSON.stringify(c));
+          if (ws.readyState === ws.OPEN) {
+            ws.send(JSON.stringify(c));
+          }
+
+          rtc.onicecandidate = event => {
+            if (event.candidate) {
+              console.log("onicecandidate", event.candidate);
+
+              const c: ReciverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
+              ws.send(JSON.stringify(c));
+            }
+          };
         });
         ws.addEventListener("message", async event => {
           console.log(`Message from server: ${event.data}`);
