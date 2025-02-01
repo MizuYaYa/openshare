@@ -1,47 +1,48 @@
 import { Flex } from "@yamada-ui/react";
 import type { ReciverMessage, ServerMessage } from "openshare";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
 import { useParams } from "react-router";
 
 export default function Reciver() {
   const { roomId } = useParams();
+  const rtc = useRef<RTCPeerConnection>();
 
   useEffect(() => {
     let ws: WebSocket;
-    let rtc: RTCPeerConnection;
     (async () => {
       try {
         ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/connect/${roomId}`);
 
-        rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
-        if (!rtc) {
-          throw new Error("rtc is empty");
-        }
-        const dataChannel = rtc.createDataChannel("dataChannel");
-        if (!dataChannel) {
-          throw new Error("dataChannel is empty");
-        }
-
-        dataChannel.binaryType = "arraybuffer";
-
-        dataChannel.addEventListener("open", () => {
-          console.log("DataChannel opened");
-        });
-        dataChannel.addEventListener("message", event => {
-          console.log("Message from sender: ", event.data);
-        });
-        const sdp = await rtc.createOffer();
-        await rtc.setLocalDescription(sdp);
-        ws.addEventListener("open", () => {
+        ws.addEventListener("open", async () => {
           console.log("Connection opened");
-          if (!rtc.localDescription) {
+
+          rtc.current = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
+          if (!rtc) {
+            throw new Error("rtc is empty");
+          }
+          const dataChannel = rtc.current.createDataChannel("dataChannel");
+          if (!dataChannel) {
+            throw new Error("dataChannel is empty");
+          }
+
+          dataChannel.binaryType = "arraybuffer";
+
+          dataChannel.addEventListener("open", () => {
+            console.log("DataChannel opened");
+          });
+          dataChannel.addEventListener("message", event => {
+            console.log("Message from sender: ", event.data);
+          });
+          const sdp = await rtc.current.createOffer();
+          await rtc.current.setLocalDescription(sdp);
+          if (!rtc.current.localDescription) {
             throw new Error("sdp is empty");
           }
           const c: ReciverMessage = {
             type: "connectionRequest",
             message: {
-              sdp: JSON.stringify(rtc.localDescription),
+              sdp: JSON.stringify(rtc.current.localDescription),
               clientData: { os: osName, browser: browserName },
             },
           };
@@ -49,7 +50,7 @@ export default function Reciver() {
             ws.send(JSON.stringify(c));
           }
 
-          rtc.onicecandidate = event => {
+          rtc.current.onicecandidate = event => {
             if (event.candidate) {
               console.log("onicecandidate", event.candidate);
 
@@ -65,11 +66,11 @@ export default function Reciver() {
           switch (data.type) {
             case "connectionResponse": {
               if (!data.message.ok) {
-                rtc.close();
+                rtc.current?.close();
                 throw new Error("connectionResponse is not ok");
               }
               console.log("set remote description");
-              await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
+              await rtc.current?.setRemoteDescription(JSON.parse(data.message.sdp));
 
               break;
             }
@@ -80,7 +81,7 @@ export default function Reciver() {
         });
         ws.addEventListener("close", () => {
           console.log("Connection closed");
-          rtc.close();
+          rtc.current?.close();
         });
         ws.addEventListener("error", error => {
           console.error("event WebSocket error:", error);
@@ -94,7 +95,7 @@ export default function Reciver() {
         if (ws.readyState === ws.OPEN) {
           ws.close();
         }
-        rtc.close();
+        rtc.current?.close();
       });
     };
   }, [roomId]);

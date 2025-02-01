@@ -27,7 +27,7 @@ import {
 } from "@yamada-ui/react";
 import type { ClientData, SenderMessage, ServerMessage } from "openshare";
 import { QRCodeSVG } from "qrcode.react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
 
 export default function Sender() {
@@ -36,14 +36,14 @@ export default function Sender() {
   const [roomId, setRoomId] = useState<undefined | string>();
   const { onCopy, hasCopied } = useClipboard();
   const [recivers, setRecivers] = useState<(ClientData & { id: string })[]>([]);
+  const rtcS = useRef(new RTCSession());
   const serverStatus = ["接続試行中", "通信中", "切断中", "切断"];
 
   useEffect(() => {
     let ws: WebSocket;
-    let rtcS: RTCSession;
     try {
       ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/host`);
-      rtcS = new RTCSession();
+
       ws.addEventListener("open", () => {
         console.log("Connection opened");
 
@@ -60,7 +60,7 @@ export default function Sender() {
             break;
 
           case "connectionRequest": {
-            const rtc = rtcS.newConnection(data.message);
+            const rtc = rtcS.current.newConnection(data.message);
             await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
             const sdp = await rtc.createAnswer();
             await rtc.setLocalDescription(sdp);
@@ -76,7 +76,7 @@ export default function Sender() {
           }
 
           case "ice": {
-            const rtc = rtcS.connections.get(data.message.id)?.connection;
+            const rtc = rtcS.current.connections.get(data.message.id)?.connection;
             if (!rtc) {
               throw new Error("rtc is empty");
             }
@@ -99,7 +99,7 @@ export default function Sender() {
       });
       ws.addEventListener("close", () => {
         console.log("Connection closed");
-        for (const [_, { connection }] of rtcS.connections) {
+        for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
         }
       });
@@ -114,7 +114,7 @@ export default function Sender() {
         if (ws.readyState === ws.OPEN) {
           ws.close();
         }
-        for (const [_, { connection }] of rtcS.connections) {
+        for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
         }
       });
