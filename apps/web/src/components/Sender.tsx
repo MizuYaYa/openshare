@@ -34,8 +34,8 @@ export default function Sender() {
   const [wsState, setWsState] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [roomId, setRoomId] = useState<undefined | string>();
+  const [recivers, setRecivers] = useState<(ClientData & { id: string; isReady: boolean })[]>([]);
   const { onCopy, hasCopied } = useClipboard();
-  const [recivers, setRecivers] = useState<(ClientData & { id: string })[]>([]);
   const rtcS = useRef(new RTCSession());
   const serverStatus = ["接続試行中", "通信中", "切断中", "切断"];
 
@@ -65,14 +65,13 @@ export default function Sender() {
             const sdp = await rtc.createAnswer();
             await rtc.setLocalDescription(sdp);
 
-            rtc.addEventListener("connectionstatechange", () => {
+            rtc.addEventListener("connectionstatechange", async () => {
               console.log("connectionState", rtc.connectionState);
               if (rtc.connectionState === "connected") {
-                rtcS.current.setDataChannel(data.message.id, rtc);
+                await rtcS.current.setDataChannel(data.message.id, rtc);
+                setRecivers(prev => [...prev, { ...data.message.clientData, id: data.message.id, isReady: true }]);
               }
             });
-
-            setRecivers(prev => [...prev, { ...data.message.clientData, id: data.message.id }]);
 
             const c: SenderMessage = {
               type: "connectionResponse",
@@ -214,6 +213,17 @@ export default function Sender() {
         <Box p="md">
           <Flex gap="md" mb="lg">
             <Heading fontSize="xl">受信者</Heading>
+            <Button
+              size="sm"
+              px="xl"
+              disabled={files.length === 0 || recivers.length === 0 || !recivers.every(r => r.isReady)}
+              onClick={() => {
+                console.log("clicked send file button");
+                rtcS.current.sendFiles(files);
+              }}
+            >
+              送信する
+            </Button>
           </Flex>
           <Wrap gap="xl">
             <For each={recivers} fallback={<Center>受信者がいません</Center>}>
