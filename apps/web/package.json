@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@yamada-ui/dropzone": "^1.1.5",
+    "@yamada-ui/lucide": "^1.10.3",
     "@yamada-ui/react": "^1.7.3",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
