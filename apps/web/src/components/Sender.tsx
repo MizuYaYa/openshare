@@ -65,6 +65,13 @@ export default function Sender() {
             const sdp = await rtc.createAnswer();
             await rtc.setLocalDescription(sdp);
 
+            rtc.addEventListener("connectionstatechange", () => {
+              console.log("connectionState", rtc.connectionState);
+              if (rtc.connectionState === "connected") {
+                rtcS.current.setDataChannel(data.message.id, rtc);
+              }
+            });
+
             setRecivers(prev => [...prev, { ...data.message.clientData, id: data.message.id }]);
 
             const c: SenderMessage = {
