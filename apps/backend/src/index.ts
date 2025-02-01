@@ -170,6 +170,8 @@ app
             if (reciverIndex !== -1) {
               sender.recivers?.splice(reciverIndex, 1);
             }
+            const c: ServerMessage = { type: "connectionState", message: { state: "disconnected", id: reciverId } };
+            sender.ws.send(JSON.stringify(c));
           }
         },
         onOpen: (event, ws) => {

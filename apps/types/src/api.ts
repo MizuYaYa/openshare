@@ -25,12 +25,15 @@ export type Ice = { ice: string };
 
 export type IceWithId = Ice & { id: string };
 
+export type ConnectionState = { id: string; state: "disconnected" };
+
 export type ServerMessage =
   | { type: "roomId"; message: RoomId }
   | { type: "connectionRequest"; message: ConnectionRequestWithId }
   | { type: "connectionResponse"; message: ConnectionResponseToReciver }
   | { type: "error"; message: Error }
-  | { type: "ice"; message: IceWithId };
+  | { type: "ice"; message: IceWithId }
+  | { type: "connectionState"; message: ConnectionState };
 
 export type SenderMessage =
   | { type: "connectionResponse"; message: ConnectionResponse }

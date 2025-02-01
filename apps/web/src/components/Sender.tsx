@@ -1,6 +1,8 @@
 import { RTCSession } from "@/utils/webRTC";
 import { Dropzone } from "@yamada-ui/dropzone";
+import { GhostIcon } from "@yamada-ui/lucide";
 import {
+  Avatar,
   Box,
   Button,
   Card,
@@ -13,6 +15,7 @@ import {
   For,
   FormatByte,
   Heading,
+  Indicator,
   Input,
   InputGroup,
   InputRightElement,
@@ -22,7 +25,7 @@ import {
   Wrap,
   useClipboard,
 } from "@yamada-ui/react";
-import type { SenderMessage, ServerMessage } from "openshare";
+import type { ClientData, SenderMessage, ServerMessage } from "openshare";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { browserName, osName } from "react-device-detect";
@@ -32,6 +35,7 @@ export default function Sender() {
   const [files, setFiles] = useState<File[]>([]);
   const [roomId, setRoomId] = useState<undefined | string>();
   const { onCopy, hasCopied } = useClipboard();
+  const [recivers, setRecivers] = useState<(ClientData & { id: string })[]>([]);
   const serverStatus = ["接続試行中", "通信中", "切断中", "切断"];
 
   useEffect(() => {
@@ -59,6 +63,9 @@ export default function Sender() {
             await rtc.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.message.sdp)));
             const sdp = await rtc.createAnswer();
             await rtc.setLocalDescription(new RTCSessionDescription(sdp));
+
+            setRecivers(prev => [...prev, { ...data.message.clientData, id: data.message.id }]);
+
             const c: SenderMessage = {
               type: "connectionResponse",
               message: { ok: true, sdp: JSON.stringify(sdp), reciverId: data.message.id },
@@ -73,6 +80,15 @@ export default function Sender() {
               throw new Error("rtc is empty");
             }
             await rtc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.message.ice)));
+            break;
+          }
+
+          case "connectionState": {
+            console.log("connectionState", data.message);
+
+            if (data.message.state === "disconnected") {
+              setRecivers(prev => prev.filter(r => r.id !== data.message.id));
+            }
             break;
           }
 
@@ -158,36 +174,56 @@ export default function Sender() {
           </Stack>
         </Box>
       </Flex>
-      <Box m="xl">
-        <Wrap>
-          <Box>
-            <Fieldset
-              legend="共有URL"
-              helperMessage="受信者にURLを共有します"
-              optionalIndicator={
-                <Tag size="sm" ms="sm">
-                  {serverStatus[wsState]}
-                </Tag>
-              }
-            >
-              <InputGroup size="md">
-                <Input value={roomId ? `${location.href}connect/${roomId}` : ""} readOnly htmlSize={75} name="roomId" />
-                <InputRightElement w="5xs" clickable>
-                  <Button
-                    onClick={() => onCopy(`${location.href}connect/${roomId}`)}
-                    h="1.75rem"
-                    size="sm"
-                    disabled={!roomId}
-                  >
-                    {hasCopied ? "Copied!" : "Copy"}
-                  </Button>
-                </InputRightElement>
-              </InputGroup>
-            </Fieldset>
-            {roomId ? <QRCodeSVG value={`${location.href}connect/${roomId}`} /> : null}
-          </Box>
-        </Wrap>
-      </Box>
+      <Flex m="xl">
+        <Box>
+          <Fieldset
+            legend="共有URL"
+            helperMessage="受信者にURLを共有します"
+            optionalIndicator={
+              <Tag size="sm" ms="sm">
+                {serverStatus[wsState]}
+              </Tag>
+            }
+          >
+            <InputGroup size="md">
+              <Input value={roomId ? `${location.href}connect/${roomId}` : ""} readOnly htmlSize={75} name="roomId" />
+              <InputRightElement w="5xs" clickable>
+                <Button
+                  onClick={() => onCopy(`${location.href}connect/${roomId}`)}
+                  h="1.75rem"
+                  size="sm"
+                  disabled={!roomId}
+                >
+                  {hasCopied ? "Copied!" : "Copy"}
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+          </Fieldset>
+          {roomId ? <QRCodeSVG value={`${location.href}connect/${roomId}`} /> : null}
+        </Box>
+        <Box p="md">
+          <Flex gap="md" mb="lg">
+            <Heading fontSize="xl">受信者</Heading>
+          </Flex>
+          <Wrap gap="xl">
+            <For each={recivers} fallback={<Center>受信者がいません</Center>}>
+              {reciver => (
+                <Indicator key={reciver.id} label="通信中" pingScale={2}>
+                  <Card>
+                    <CardHeader>
+                      <Avatar icon={<GhostIcon />} />
+                    </CardHeader>
+                    <CardBody>
+                      <Text>{reciver.os}</Text>
+                      <Text>{reciver.browser}</Text>
+                    </CardBody>
+                  </Card>
+                </Indicator>
+              )}
+            </For>
+          </Wrap>
+        </Box>
+      </Flex>
     </>
   );
 }
