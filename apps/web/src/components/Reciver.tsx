@@ -82,6 +82,7 @@ export default function Reciver() {
         ws.addEventListener("close", () => {
           console.log("Connection closed");
           rtc.current?.close();
+          rtc.current = undefined;
         });
         ws.addEventListener("error", error => {
           console.error("event WebSocket error:", error);

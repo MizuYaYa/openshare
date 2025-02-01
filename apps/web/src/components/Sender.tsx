@@ -89,6 +89,8 @@ export default function Sender() {
 
             if (data.message.state === "disconnected") {
               setRecivers(prev => prev.filter(r => r.id !== data.message.id));
+              rtcS.current.connections.get(data.message.id)?.connection.close();
+              rtcS.current.connections.delete(data.message.id);
             }
             break;
           }
