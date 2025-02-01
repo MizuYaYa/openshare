@@ -29,7 +29,7 @@ export default function Reciver() {
           console.log("DataChannel opened");
         });
         dataChannel.addEventListener("message", event => {
-          console.log(`Message from sender: ${event.data}`);
+          console.log("Message from sender: ", event.data);
         });
         const sdp = await rtc.createOffer();
         await rtc.setLocalDescription(sdp);
@@ -40,7 +40,10 @@ export default function Reciver() {
           }
           const c: ReciverMessage = {
             type: "connectionRequest",
-            message: { sdp: JSON.stringify(rtc.localDescription), clientData: { os: osName, browser: browserName } },
+            message: {
+              sdp: JSON.stringify(rtc.localDescription),
+              clientData: { os: osName, browser: browserName },
+            },
           };
           if (ws.readyState === ws.OPEN) {
             ws.send(JSON.stringify(c));
@@ -56,7 +59,7 @@ export default function Reciver() {
           };
         });
         ws.addEventListener("message", async event => {
-          console.log(`Message from server: ${event.data}`);
+          console.log("Message from server: ", JSON.parse(event.data));
 
           const data: ServerMessage = JSON.parse(event.data);
           switch (data.type) {

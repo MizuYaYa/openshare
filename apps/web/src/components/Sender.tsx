@@ -52,12 +52,13 @@ export default function Sender() {
         ws.send(JSON.stringify(c));
       });
       ws.addEventListener("message", async event => {
-        console.log(`Message from server: ${event.data}`);
+        console.log("Message from server: ", JSON.parse(event.data));
         const data: ServerMessage = JSON.parse(event.data);
         switch (data.type) {
           case "roomId":
             setRoomId(data.message);
             break;
+
           case "connectionRequest": {
             const rtc = rtcS.newConnection(data.message);
             await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
@@ -71,9 +72,9 @@ export default function Sender() {
               message: { ok: true, sdp: JSON.stringify(sdp), reciverId: data.message.id },
             };
             ws.send(JSON.stringify(c));
-
             break;
           }
+
           case "ice": {
             const rtc = rtcS.connections.get(data.message.id)?.connection;
             if (!rtc) {

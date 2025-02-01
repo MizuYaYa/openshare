@@ -11,13 +11,7 @@ export class RTCSession {
   }
 
   newConnection(connectionData: ConnectionRequestWithId) {
-    const rtc = new RTCPeerConnection({
-      iceServers: [
-        {
-          urls: "stun:stun.cloudflare.com:3478",
-        },
-      ],
-    });
+    const rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
 
     this.connections.set(connectionData.id, {
       clientData: connectionData.clientData,
