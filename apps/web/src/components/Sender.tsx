@@ -60,9 +60,9 @@ export default function Sender() {
             break;
           case "connectionRequest": {
             const rtc = rtcS.newConnection(data.message);
-            await rtc.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.message.sdp)));
+            await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
             const sdp = await rtc.createAnswer();
-            await rtc.setLocalDescription(new RTCSessionDescription(sdp));
+            await rtc.setLocalDescription(sdp);
 
             setRecivers(prev => [...prev, { ...data.message.clientData, id: data.message.id }]);
 
@@ -79,7 +79,7 @@ export default function Sender() {
             if (!rtc) {
               throw new Error("rtc is empty");
             }
-            await rtc.addIceCandidate(new RTCIceCandidate(JSON.parse(data.message.ice)));
+            await rtc.addIceCandidate(JSON.parse(data.message.ice));
             break;
           }
 

@@ -32,7 +32,7 @@ export default function Reciver() {
           console.log(`Message from sender: ${event.data}`);
         });
         const sdp = await rtc.createOffer();
-        await rtc.setLocalDescription(new RTCSessionDescription(sdp));
+        await rtc.setLocalDescription(sdp);
         ws.addEventListener("open", () => {
           console.log("Connection opened");
           if (!rtc.localDescription) {
@@ -66,7 +66,7 @@ export default function Reciver() {
                 throw new Error("connectionResponse is not ok");
               }
               console.log("set remote description");
-              await rtc.setRemoteDescription(new RTCSessionDescription(JSON.parse(data.message.sdp)));
+              await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
 
               break;
             }
