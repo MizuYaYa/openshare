@@ -1,8 +1,6 @@
 import { RTCSession } from "@/utils/webRTC";
 import { Dropzone } from "@yamada-ui/dropzone";
-import { GhostIcon } from "@yamada-ui/lucide";
 import {
-  Avatar,
   Box,
   Button,
   Card,
@@ -15,20 +13,19 @@ import {
   For,
   FormatByte,
   Heading,
-  Indicator,
   Input,
   InputGroup,
   InputRightElement,
   Stack,
   Tag,
   Text,
-  Wrap,
   useClipboard,
 } from "@yamada-ui/react";
 import type { ClientData, SenderMessage, ServerMessage } from "openshare";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
+import Recivers from "@/components/Recivers";
 
 export default function Sender() {
   const [wsState, setWsState] = useState(0);
@@ -240,23 +237,7 @@ export default function Sender() {
               送信する
             </Button>
           </Flex>
-          <Wrap gap="xl">
-            <For each={recivers} fallback={<Center>受信者がいません</Center>}>
-              {reciver => (
-                <Indicator key={reciver.id} label="通信中" pingScale={2}>
-                  <Card>
-                    <CardHeader>
-                      <Avatar icon={<GhostIcon />} />
-                    </CardHeader>
-                    <CardBody>
-                      <Text>{reciver.os}</Text>
-                      <Text>{reciver.browser}</Text>
-                    </CardBody>
-                  </Card>
-                </Indicator>
-              )}
-            </For>
-          </Wrap>
+          <Recivers recivers={recivers} />
         </Box>
       </Flex>
     </>
