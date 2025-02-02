@@ -21,9 +21,7 @@ export type ConnectionResponseToReciver = { ok: true; sdp: string; clientData: C
 
 export type Error = "INVALID_ROOM_ID" | "INVALID_RECIVER_ID";
 
-export type Ice = { ice: string };
-
-export type IceWithId = Ice & { id: string };
+export type Ice = { ice: string; id?: string };
 
 export type ConnectionState = { id: string; state: "disconnected" };
 
@@ -32,11 +30,12 @@ export type ServerMessage =
   | { type: "connectionRequest"; message: ConnectionRequestWithId }
   | { type: "connectionResponse"; message: ConnectionResponseToReciver }
   | { type: "error"; message: Error }
-  | { type: "ice"; message: IceWithId }
+  | { type: "ice"; message: Ice }
   | { type: "connectionState"; message: ConnectionState };
 
 export type SenderMessage =
   | { type: "connectionResponse"; message: ConnectionResponse }
-  | { type: "clientData"; message: ClientData };
+  | { type: "clientData"; message: ClientData }
+  | { type: "ice"; message: Ice };
 
 export type ReciverMessage = { type: "connectionRequest"; message: ConnectionRequest } | { type: "ice"; message: Ice };

@@ -85,6 +85,20 @@ app
               break;
             }
 
+            case "ice": {
+              const reciver = connections.get(roomId)?.recivers?.find(r => r.id === data.message.id);
+              if (!reciver) {
+                const r: ServerMessage = { type: "error", message: "INVALID_RECIVER_ID" };
+                ws.send(JSON.stringify(r));
+                return;
+              }
+
+              const c: ServerMessage = { type: "ice", message: { ice: data.message.ice } };
+              reciver.ws.send(JSON.stringify(c));
+
+              break;
+            }
+
             default:
               break;
           }

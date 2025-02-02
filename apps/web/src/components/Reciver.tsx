@@ -74,6 +74,12 @@ export default function Reciver() {
 
               break;
             }
+            case "ice": {
+              console.log("add ice candidate");
+              await rtc.current?.addIceCandidate(JSON.parse(data.message.ice));
+
+              break;
+            }
 
             default:
               break;

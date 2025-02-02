@@ -73,6 +73,18 @@ export default function Sender() {
               }
             });
 
+            rtc.addEventListener("icecandidate", event => {
+              if (event.candidate) {
+                console.log("onicecandidate", event.candidate);
+
+                const c: SenderMessage = {
+                  type: "ice",
+                  message: { ice: JSON.stringify(event.candidate), id: data.message.id },
+                };
+                ws.send(JSON.stringify(c));
+              }
+            });
+
             const c: SenderMessage = {
               type: "connectionResponse",
               message: { ok: true, sdp: JSON.stringify(sdp), reciverId: data.message.id },
@@ -82,6 +94,9 @@ export default function Sender() {
           }
 
           case "ice": {
+            if (!data.message?.id) {
+              throw new Error("id is empty");
+            }
             const rtc = rtcS.current.connections.get(data.message.id)?.connection;
             if (!rtc) {
               throw new Error("rtc is empty");
