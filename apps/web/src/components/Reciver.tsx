@@ -1,12 +1,26 @@
-import { Flex } from "@yamada-ui/react";
+import { Button, Card, CardBody, CardFooter, CardHeader, Flex, For, FormatByte, Progress } from "@yamada-ui/react";
 import type { ReciverMessage, ServerMessage } from "openshare";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
 import { useParams } from "react-router";
 
+type ReciveFile = {
+  name: string;
+  size: number;
+  type: string;
+  isPending: boolean;
+};
+
+type files = {
+  reciveSize: number;
+  file: ArrayBuffer[];
+} & ReciveFile;
+
 export default function Reciver() {
   const { roomId } = useParams();
+  const [reciveFiles, setReciveFiles] = useState<ReciveFile[]>([]);
   const rtc = useRef<RTCPeerConnection>();
+  const files = useRef(new Set<files>());
 
   useEffect(() => {
     let ws: WebSocket;
@@ -32,7 +46,37 @@ export default function Reciver() {
             console.log("DataChannel opened");
           });
           dataChannel.addEventListener("message", event => {
-            console.log("Message from sender: ", event.data);
+            if (event.data instanceof ArrayBuffer) {
+              const file = Array.from(files.current.values()).find(file => file.isPending);
+              if (!file) {
+                throw new Error("file is empty");
+              }
+
+              file.file.push(event.data);
+              file.reciveSize += event.data.byteLength;
+
+              // console.log(file);
+              if (file.size === file.reciveSize) {
+                file.isPending = false;
+                setReciveFiles(files =>
+                  files.map(rFile => (rFile.name === file.name ? { ...rFile, isPending: false } : rFile)),
+                );
+              }
+              return;
+            }
+
+            const data = JSON.parse(event.data);
+            if (data.type === "fileInfo") {
+              console.log("fileInfo", data);
+              const file = {
+                name: data.message.name,
+                size: data.message.size,
+                type: data.message.type,
+                isPending: true,
+              };
+              files.current.add({ ...file, reciveSize: 0, file: [] });
+              setReciveFiles(files => [...files, { ...file }]);
+            }
           });
           const sdp = await rtc.current.createOffer();
           await rtc.current.setLocalDescription(sdp);
@@ -109,7 +153,37 @@ export default function Reciver() {
 
   return (
     <>
-      <Flex></Flex>
+      <Flex gap="md" wrap="wrap">
+        <For each={reciveFiles}>
+          {(reciveFiles, i) => (
+            <Card key={i}>
+              <CardHeader>{reciveFiles.name}</CardHeader>
+              <CardBody>
+                <Progress hasStripe={reciveFiles.isPending} />
+              </CardBody>
+              <CardFooter>
+                <FormatByte value={reciveFiles.size} />
+                <Button
+                  disabled={reciveFiles.isPending}
+                  onClick={() => {
+                    const file = Array.from(files.current.values()).find(file => file.name === reciveFiles.name);
+                    const blob = new Blob(file?.file, { type: reciveFiles.type });
+                    const src = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = src;
+                    a.download = reciveFiles.name;
+                    a.click();
+                    URL.revokeObjectURL(src);
+                  }}
+                  size="xs"
+                >
+                  保存
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
+        </For>
+      </Flex>
     </>
   );
 }

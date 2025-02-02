@@ -36,7 +36,7 @@ export class RTCSession {
         e.channel.addEventListener(
           "open",
           () => {
-            console.log("DataChannel opened");
+            console.log(`DataChannel ${e.channel.label} is opened`);
             resolve(e.channel);
           },
           { once: true },
@@ -45,21 +45,42 @@ export class RTCSession {
     });
   }
 
-  sendFiles(files: File[]) {
+  async sendFiles(files: File[]) {
     for (const file of files) {
-      for (const connection of this.connections.values()) {
+      for await (const connection of this.connections.values()) {
         if (!connection.dataChannel) {
           throw new Error("dataChannelが無いReciver");
         }
         console.log("send file", file.name);
         this.sendFileInfo(file, connection.dataChannel);
-        //await this.sendFileData(file, connection.dataChannel);
+        await this.sendFileData(file, connection.dataChannel);
       }
     }
   }
 
   async sendFileData(file: File, dataChannel: RTCDataChannel) {
-    // TODO: ファイルを分割して送信する
+    let offset = 0;
+    console.log("send file data", file);
+
+    const buffer = await file.arrayBuffer();
+    const send = () => {
+      while (offset < buffer.byteLength) {
+        if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
+          console.log("bufferedAmount", dataChannel.bufferedAmount);
+          if (!dataChannel.onbufferedamountlow) {
+            dataChannel.onbufferedamountlow = () => {
+              dataChannel.onbufferedamountlow = null;
+              send();
+            };
+          }
+          return;
+        }
+        const chunk = buffer.slice(offset, offset + this.maxChunkSize);
+        offset += chunk.byteLength;
+        dataChannel.send(chunk);
+      }
+    };
+    send();
   }
 
   sendFileInfo(file: File, dataChannel: RTCDataChannel) {
