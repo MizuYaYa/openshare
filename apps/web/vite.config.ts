@@ -19,4 +19,10 @@ function injectScript(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), injectScript(), tsconfigPaths()],
+  server: {
+    https: {
+      cert : "../backend/localhost-cert.pem",
+      key : "../backend/localhost-privkey.pem"
+    }
+  }
 });
