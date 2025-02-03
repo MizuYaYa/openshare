@@ -7,7 +7,7 @@ type ReceiverProps = {
   isReady: boolean;
 } & ClientData;
 
-export default function Receivers({receivers}: {receivers: ReceiverProps[]}) {
+export default function Receivers({ receivers }: { receivers: ReceiverProps[] }) {
   return (
     <Wrap gap="xl">
       <For each={receivers} fallback={<Center>受信者がいません</Center>}>

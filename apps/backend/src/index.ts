@@ -228,7 +228,6 @@ const server = serve({
   serverOptions: {
     key: readFileSync("localhost-privkey.pem"),
     cert: readFileSync("localhost-cert.pem"),
-    // biome-ignore lint/style/useNamingConvention: しょうがないので無視
     allowHTTP1: true,
   },
 });

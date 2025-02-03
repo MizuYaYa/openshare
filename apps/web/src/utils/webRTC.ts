@@ -1,6 +1,5 @@
 import type { ClientData, ConnectionRequestWithId } from "openshare";
 
-// biome-ignore lint/style/useNamingConvention: 仕方ない
 export class RTCSession {
   connections: Map<string, { clientData: ClientData; connection: RTCPeerConnection; dataChannel?: RTCDataChannel }>;
   maxChunkSize: number;

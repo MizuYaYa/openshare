@@ -1,3 +1,4 @@
+import Receivers from "@/components/Receivers";
 import { RTCSession } from "@/utils/webRTC";
 import { Dropzone } from "@yamada-ui/dropzone";
 import {
@@ -25,7 +26,6 @@ import type { ClientData, SenderMessage, ServerMessage } from "openshare";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
-import Receivers from "@/components/Receivers";
 
 export default function Sender() {
   const [wsState, setWsState] = useState(0);

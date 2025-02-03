@@ -11,7 +11,7 @@ type ReceiveFile = {
   isPending: boolean;
 };
 
-type files = {
+type Files = {
   receiveSize: number;
   file: ArrayBuffer[];
 } & ReceiveFile;
@@ -20,7 +20,7 @@ export default function Receiver() {
   const { roomId } = useParams();
   const [receiveFiles, setReceiveFiles] = useState<ReceiveFile[]>([]);
   const rtc = useRef<RTCPeerConnection>();
-  const files = useRef(new Set<files>());
+  const files = useRef(new Set<Files>());
 
   useEffect(() => {
     let ws: WebSocket;
