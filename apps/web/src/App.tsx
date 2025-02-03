@@ -1,5 +1,5 @@
 import Header from "@/components/Header";
-import Reciver from "@/components/Reciver";
+import Receiver from "@/components/Receiver";
 import Sender from "@/components/Sender";
 import { useParams } from "react-router";
 
@@ -9,7 +9,7 @@ function App() {
   return (
     <>
       <Header />
-      {roomId ? <Reciver /> : <Sender />}
+      {roomId ? <Receiver /> : <Sender />}
     </>
   );
 }

@@ -11,7 +11,7 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import type { WSContext } from "hono/ws";
 import log4js from "log4js";
-import type { ClientData, ReciverMessage, SenderMessage, ServerMessage } from "openshare";
+import type { ClientData, ReceiverMessage, SenderMessage, ServerMessage } from "openshare";
 import { ulid } from "ulid";
 
 const log = log4js.getLogger();
@@ -36,7 +36,7 @@ type Connection = {
   clientData?: ClientData;
   ip?: string;
 };
-const connections = new Map<string, Connection & { recivers: (Connection & { id: string })[] }>();
+const connections = new Map<string, Connection & { receivers: (Connection & { id: string })[] }>();
 
 app
   .get(
@@ -65,9 +65,9 @@ app
                 throw new Error("connection not found");
               }
               if (data.message.ok) {
-                const reciver = connection.recivers?.find(r => r.id === data.message.reciverId);
-                if (!reciver) {
-                  const c: ServerMessage = { type: "error", message: "INVALID_RECIVER_ID" };
+                const receiver = connection.receivers?.find(r => r.id === data.message.receiverId);
+                if (!receiver) {
+                  const c: ServerMessage = { type: "error", message: "INVALID_RECEIVER_ID" };
                   ws.send(JSON.stringify(c));
                   return;
                 }
@@ -79,22 +79,22 @@ app
                   type: "connectionResponse",
                   message: { ok: true, sdp: data.message.sdp, clientData: connection.clientData },
                 };
-                reciver.ws.send(JSON.stringify(r));
+                receiver.ws.send(JSON.stringify(r));
               }
 
               break;
             }
 
             case "ice": {
-              const reciver = connections.get(roomId)?.recivers?.find(r => r.id === data.message.id);
-              if (!reciver) {
-                const r: ServerMessage = { type: "error", message: "INVALID_RECIVER_ID" };
+              const receiver = connections.get(roomId)?.receivers?.find(r => r.id === data.message.id);
+              if (!receiver) {
+                const r: ServerMessage = { type: "error", message: "INVALID_RECEIVER_ID" };
                 ws.send(JSON.stringify(r));
                 return;
               }
 
               const c: ServerMessage = { type: "ice", message: { ice: data.message.ice } };
-              reciver.ws.send(JSON.stringify(c));
+              receiver.ws.send(JSON.stringify(c));
 
               break;
             }
@@ -105,15 +105,15 @@ app
         },
         onClose: () => {
           log.debug(`connection closed ${roomId}`);
-          for (const reciver of connections.get(roomId)?.recivers || []) {
-            reciver.ws.close();
+          for (const receiver of connections.get(roomId)?.receivers || []) {
+            receiver.ws.close();
           }
           connections.delete(roomId);
         },
         onOpen: (event, ws) => {
           log.debug(`connection opened ${roomId}`);
 
-          connections.set(roomId, { ws, ip: remote.address, recivers: [] });
+          connections.set(roomId, { ws, ip: remote.address, receivers: [] });
           const c: ServerMessage = { type: "roomId", message: roomId };
           ws.send(JSON.stringify(c));
         },
@@ -128,13 +128,13 @@ app
     upgradeWebSocket(c => {
       const { remote } = getConnInfo(c);
       const roomId = c.req.param("roomId");
-      const reciverId = c.get("requestId");
+      const receiverId = c.get("requestId");
 
-      log.debug(`reciver WS connection established from ${remote.address} using ${remote.addressType} ${roomId}`);
+      log.debug(`receiver WS connection established from ${remote.address} using ${remote.addressType} ${roomId}`);
       return {
         onMessage(event, ws) {
-          log.trace(`Message from reciver: ${event.data.toString()}`);
-          const data: ReciverMessage = JSON.parse(event.data.toString());
+          log.trace(`Message from receiver: ${event.data.toString()}`);
+          const data: ReceiverMessage = JSON.parse(event.data.toString());
           switch (data.type) {
             case "connectionRequest": {
               const sender = connections.get(roomId);
@@ -147,11 +147,11 @@ app
                 return;
               }
 
-              sender.recivers.push({ ws, ip: remote.address, clientData: data.message.clientData, id: reciverId });
+              sender.receivers.push({ ws, ip: remote.address, clientData: data.message.clientData, id: receiverId });
 
               const c: ServerMessage = {
                 type: "connectionRequest",
-                message: { sdp: data.message.sdp, clientData: data.message.clientData, id: reciverId },
+                message: { sdp: data.message.sdp, clientData: data.message.clientData, id: receiverId },
               };
               sender.ws.send(JSON.stringify(c));
 
@@ -167,7 +167,7 @@ app
                 return;
               }
 
-              const c: ServerMessage = { type: "ice", message: { ice: data.message.ice, id: reciverId } };
+              const c: ServerMessage = { type: "ice", message: { ice: data.message.ice, id: receiverId } };
               sender.ws.send(JSON.stringify(c));
 
               break;
@@ -180,11 +180,11 @@ app
           log.debug(`connection closed ${roomId}`);
           const sender = connections.get(roomId);
           if (sender) {
-            const reciverIndex = sender.recivers?.findIndex(r => r.id === reciverId);
-            if (reciverIndex !== -1) {
-              sender.recivers?.splice(reciverIndex, 1);
+            const receiverIndex = sender.receivers?.findIndex(r => r.id === receiverId);
+            if (receiverIndex !== -1) {
+              sender.receivers?.splice(receiverIndex, 1);
             }
-            const c: ServerMessage = { type: "connectionState", message: { state: "disconnected", id: reciverId } };
+            const c: ServerMessage = { type: "connectionState", message: { state: "disconnected", id: receiverId } };
             sender.ws.send(JSON.stringify(c));
           }
         },
@@ -211,7 +211,7 @@ app
           roomId,
           senderIp: connection.ip,
           clientData: connection.clientData,
-          recivers: connection.recivers?.map(r => ({ ip: r.ip, clientData: r.clientData, id: r.id })),
+          receivers: connection.receivers?.map(r => ({ ip: r.ip, clientData: r.clientData, id: r.id })),
         };
       }),
       numberOfConnections: connections.size,

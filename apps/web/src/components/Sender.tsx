@@ -25,13 +25,13 @@ import type { ClientData, SenderMessage, ServerMessage } from "openshare";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
-import Recivers from "@/components/Recivers";
+import Receivers from "@/components/Receivers";
 
 export default function Sender() {
   const [wsState, setWsState] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [roomId, setRoomId] = useState<undefined | string>();
-  const [recivers, setRecivers] = useState<(ClientData & { id: string; isReady: boolean })[]>([]);
+  const [receivers, setReceivers] = useState<(ClientData & { id: string; isReady: boolean })[]>([]);
   const { onCopy, hasCopied } = useClipboard();
   const rtcS = useRef(new RTCSession());
   const serverStatus = ["接続試行中", "通信中", "切断中", "切断"];
@@ -66,7 +66,7 @@ export default function Sender() {
               console.log("connectionState", rtc.connectionState);
               if (rtc.connectionState === "connected") {
                 await rtcS.current.setDataChannel(data.message.id, rtc);
-                setRecivers(prev => [...prev, { ...data.message.clientData, id: data.message.id, isReady: true }]);
+                setReceivers(prev => [...prev, { ...data.message.clientData, id: data.message.id, isReady: true }]);
               }
             });
 
@@ -84,7 +84,7 @@ export default function Sender() {
 
             const c: SenderMessage = {
               type: "connectionResponse",
-              message: { ok: true, sdp: JSON.stringify(sdp), reciverId: data.message.id },
+              message: { ok: true, sdp: JSON.stringify(sdp), receiverId: data.message.id },
             };
             ws.send(JSON.stringify(c));
             break;
@@ -106,7 +106,7 @@ export default function Sender() {
             console.log("connectionState", data.message);
 
             if (data.message.state === "disconnected") {
-              setRecivers(prev => prev.filter(r => r.id !== data.message.id));
+              setReceivers(prev => prev.filter(r => r.id !== data.message.id));
               rtcS.current.connections.get(data.message.id)?.connection.close();
               rtcS.current.connections.delete(data.message.id);
             }
@@ -228,7 +228,7 @@ export default function Sender() {
             <Button
               size="sm"
               px="xl"
-              disabled={files.length === 0 || recivers.length === 0 || !recivers.every(r => r.isReady)}
+              disabled={files.length === 0 || receivers.length === 0 || !receivers.every(r => r.isReady)}
               onClick={() => {
                 console.log("clicked send file button");
                 rtcS.current.sendFiles(files);
@@ -237,7 +237,7 @@ export default function Sender() {
               送信する
             </Button>
           </Flex>
-          <Recivers recivers={recivers} />
+          <Receivers receivers={receivers} />
         </Box>
       </Flex>
     </>

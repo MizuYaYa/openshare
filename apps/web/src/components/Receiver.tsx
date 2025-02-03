@@ -1,10 +1,10 @@
 import { Button, Card, CardBody, CardFooter, CardHeader, Flex, For, FormatByte, Progress } from "@yamada-ui/react";
-import type { ReciverMessage, ServerMessage } from "openshare";
+import type { ReceiverMessage, ServerMessage } from "openshare";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
 import { useParams } from "react-router";
 
-type ReciveFile = {
+type ReceiveFile = {
   name: string;
   size: number;
   type: string;
@@ -12,13 +12,13 @@ type ReciveFile = {
 };
 
 type files = {
-  reciveSize: number;
+  receiveSize: number;
   file: ArrayBuffer[];
-} & ReciveFile;
+} & ReceiveFile;
 
-export default function Reciver() {
+export default function Receiver() {
   const { roomId } = useParams();
-  const [reciveFiles, setReciveFiles] = useState<ReciveFile[]>([]);
+  const [receiveFiles, setReceiveFiles] = useState<ReceiveFile[]>([]);
   const rtc = useRef<RTCPeerConnection>();
   const files = useRef(new Set<files>());
 
@@ -53,12 +53,12 @@ export default function Reciver() {
               }
 
               file.file.push(event.data);
-              file.reciveSize += event.data.byteLength;
+              file.receiveSize += event.data.byteLength;
 
               // console.log(file);
-              if (file.size === file.reciveSize) {
+              if (file.size === file.receiveSize) {
                 file.isPending = false;
-                setReciveFiles(files =>
+                setReceiveFiles(files =>
                   files.map(rFile => (rFile.name === file.name ? { ...rFile, isPending: false } : rFile)),
                 );
               }
@@ -74,8 +74,8 @@ export default function Reciver() {
                 type: data.message.type,
                 isPending: true,
               };
-              files.current.add({ ...file, reciveSize: 0, file: [] });
-              setReciveFiles(files => [...files, { ...file }]);
+              files.current.add({ ...file, receiveSize: 0, file: [] });
+              setReceiveFiles(files => [...files, { ...file }]);
             }
           });
           const sdp = await rtc.current.createOffer();
@@ -83,7 +83,7 @@ export default function Reciver() {
           if (!rtc.current.localDescription) {
             throw new Error("sdp is empty");
           }
-          const c: ReciverMessage = {
+          const c: ReceiverMessage = {
             type: "connectionRequest",
             message: {
               sdp: JSON.stringify(rtc.current.localDescription),
@@ -98,7 +98,7 @@ export default function Reciver() {
             if (event.candidate) {
               console.log("onicecandidate", event.candidate);
 
-              const c: ReciverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
+              const c: ReceiverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
               ws.send(JSON.stringify(c));
             }
           };
@@ -154,24 +154,24 @@ export default function Reciver() {
   return (
     <>
       <Flex gap="md" wrap="wrap">
-        <For each={reciveFiles}>
-          {(reciveFiles, i) => (
+        <For each={receiveFiles}>
+          {(receiveFiles, i) => (
             <Card key={i}>
-              <CardHeader>{reciveFiles.name}</CardHeader>
+              <CardHeader>{receiveFiles.name}</CardHeader>
               <CardBody>
-                <Progress hasStripe={reciveFiles.isPending} />
+                <Progress hasStripe={receiveFiles.isPending} />
               </CardBody>
               <CardFooter>
-                <FormatByte value={reciveFiles.size} />
+                <FormatByte value={receiveFiles.size} />
                 <Button
-                  disabled={reciveFiles.isPending}
+                  disabled={receiveFiles.isPending}
                   onClick={() => {
-                    const file = Array.from(files.current.values()).find(file => file.name === reciveFiles.name);
-                    const blob = new Blob(file?.file, { type: reciveFiles.type });
+                    const file = Array.from(files.current.values()).find(file => file.name === receiveFiles.name);
+                    const blob = new Blob(file?.file, { type: receiveFiles.type });
                     const src = URL.createObjectURL(blob);
                     const a = document.createElement("a");
                     a.href = src;
-                    a.download = reciveFiles.name;
+                    a.download = receiveFiles.name;
                     a.click();
                     URL.revokeObjectURL(src);
                   }}

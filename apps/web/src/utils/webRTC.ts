@@ -49,7 +49,7 @@ export class RTCSession {
     for (const file of files) {
       for await (const connection of this.connections.values()) {
         if (!connection.dataChannel) {
-          throw new Error("dataChannelが無いReciver");
+          throw new Error("dataChannelが無いReceiver");
         }
         console.log("send file", file.name);
         this.sendFileInfo(file, connection.dataChannel);
