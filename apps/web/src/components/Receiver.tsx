@@ -40,6 +40,15 @@ export default function Receiver() {
             throw new Error("dataChannel is empty");
           }
 
+          rtc.current.addEventListener("connectionstatechange", () => {
+            console.log("Connection state change", rtc.current?.connectionState);
+
+            if (rtc.current?.connectionState === "closed") {
+              rtc.current?.close();
+              rtc.current = undefined;
+            }
+          });
+
           dataChannel.binaryType = "arraybuffer";
 
           dataChannel.addEventListener("open", () => {
