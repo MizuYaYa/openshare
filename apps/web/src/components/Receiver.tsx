@@ -1,4 +1,15 @@
-import { Button, Card, CardBody, CardFooter, CardHeader, Flex, For, FormatByte, Progress } from "@yamada-ui/react";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Container,
+  Flex,
+  For,
+  FormatByte,
+  Progress,
+} from "@yamada-ui/react";
 import type { ReceiverMessage, ServerMessage } from "openshare";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
@@ -19,149 +30,141 @@ type Files = {
 export default function Receiver() {
   const { roomId } = useParams();
   const [receiveFiles, setReceiveFiles] = useState<ReceiveFile[]>([]);
-  const rtc = useRef<RTCPeerConnection>();
   const files = useRef(new Set<Files>());
 
   useEffect(() => {
     let ws: WebSocket;
-    (async () => {
-      try {
-        ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/connect/${roomId}`);
+    let rtc: RTCPeerConnection;
+    try {
+      ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/connect/${roomId}`);
 
-        ws.addEventListener("open", async () => {
-          console.log("Connection opened");
+      ws.addEventListener("open", async () => {
+        console.log("Connection opened");
 
-          rtc.current = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
-          if (!rtc) {
-            throw new Error("rtc is empty");
+        rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
+        if (!rtc) {
+          throw new Error("rtc is empty");
+        }
+        const dataChannel = rtc.createDataChannel("dataChannel");
+        if (!dataChannel) {
+          throw new Error("dataChannel is empty");
+        }
+
+        rtc.addEventListener("connectionstatechange", () => {
+          console.log("Connection state change", rtc?.connectionState);
+
+          if (rtc?.connectionState === "closed") {
+            rtc?.close();
           }
-          const dataChannel = rtc.current.createDataChannel("dataChannel");
-          if (!dataChannel) {
-            throw new Error("dataChannel is empty");
-          }
+        });
 
-          rtc.current.addEventListener("connectionstatechange", () => {
-            console.log("Connection state change", rtc.current?.connectionState);
+        dataChannel.binaryType = "arraybuffer";
 
-            if (rtc.current?.connectionState === "closed") {
-              rtc.current?.close();
-              rtc.current = undefined;
-            }
-          });
-
-          dataChannel.binaryType = "arraybuffer";
-
-          dataChannel.addEventListener("open", () => {
-            console.log("DataChannel opened");
-          });
-          dataChannel.addEventListener("message", event => {
-            if (event.data instanceof ArrayBuffer) {
-              const file = Array.from(files.current.values()).find(file => file.isPending);
-              if (!file) {
-                throw new Error("file is empty");
-              }
-
-              file.file.push(event.data);
-              file.receiveSize += event.data.byteLength;
-
-              // console.log(file);
-              if (file.size === file.receiveSize) {
-                file.isPending = false;
-                setReceiveFiles(files =>
-                  files.map(rFile => (rFile.name === file.name ? { ...rFile, isPending: false } : rFile)),
-                );
-              }
-              return;
+        dataChannel.addEventListener("open", () => {
+          console.log("DataChannel opened");
+        });
+        dataChannel.addEventListener("message", event => {
+          if (event.data instanceof ArrayBuffer) {
+            const file = Array.from(files.current.values()).find(file => file.isPending);
+            if (!file) {
+              throw new Error("file is empty");
             }
 
-            const data = JSON.parse(event.data);
-            if (data.type === "fileInfo") {
-              console.log("fileInfo", data);
-              const file = {
-                name: data.message.name,
-                size: data.message.size,
-                type: data.message.type,
-                isPending: true,
-              };
-              files.current.add({ ...file, receiveSize: 0, file: [] });
-              setReceiveFiles(files => [...files, { ...file }]);
+            file.file.push(event.data);
+            file.receiveSize += event.data.byteLength;
+
+            // console.log(file);
+            if (file.size === file.receiveSize) {
+              file.isPending = false;
+              setReceiveFiles(files =>
+                files.map(rFile => (rFile.name === file.name ? { ...rFile, isPending: false } : rFile)),
+              );
             }
-          });
-          const sdp = await rtc.current.createOffer();
-          await rtc.current.setLocalDescription(sdp);
-          if (!rtc.current.localDescription) {
-            throw new Error("sdp is empty");
+            return;
           }
-          const c: ReceiverMessage = {
-            type: "connectionRequest",
-            message: {
-              sdp: JSON.stringify(rtc.current.localDescription),
-              clientData: { os: osName, browser: browserName },
-            },
-          };
-          if (ws.readyState === ws.OPEN) {
+
+          const data = JSON.parse(event.data);
+          if (data.type === "fileInfo") {
+            console.log("fileInfo", data);
+            const file = {
+              name: data.message.name,
+              size: data.message.size,
+              type: data.message.type,
+              isPending: true,
+            };
+            files.current.add({ ...file, receiveSize: 0, file: [] });
+            setReceiveFiles(files => [...files, { ...file }]);
+          }
+        });
+        const sdp = await rtc.createOffer();
+        await rtc.setLocalDescription(sdp);
+        if (!rtc.localDescription) {
+          throw new Error("sdp is empty");
+        }
+        const c: ReceiverMessage = {
+          type: "connectionRequest",
+          message: {
+            sdp: JSON.stringify(rtc.localDescription),
+            clientData: { os: osName, browser: browserName },
+          },
+        };
+        ws.send(JSON.stringify(c));
+
+        rtc.onicecandidate = event => {
+          if (event.candidate) {
+            console.log("onicecandidate", event.candidate);
+
+            const c: ReceiverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
             ws.send(JSON.stringify(c));
           }
+        };
+      });
+      ws.addEventListener("message", async event => {
+        console.log("Message from server: ", JSON.parse(event.data));
 
-          rtc.current.onicecandidate = event => {
-            if (event.candidate) {
-              console.log("onicecandidate", event.candidate);
-
-              const c: ReceiverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
-              ws.send(JSON.stringify(c));
+        const data: ServerMessage = JSON.parse(event.data);
+        switch (data.type) {
+          case "connectionResponse": {
+            if (!data.message.ok) {
+              rtc?.close();
+              throw new Error("connectionResponse is not ok");
             }
-          };
-        });
-        ws.addEventListener("message", async event => {
-          console.log("Message from server: ", JSON.parse(event.data));
+            console.log("set remote description");
+            await rtc?.setRemoteDescription(JSON.parse(data.message.sdp));
 
-          const data: ServerMessage = JSON.parse(event.data);
-          switch (data.type) {
-            case "connectionResponse": {
-              if (!data.message.ok) {
-                rtc.current?.close();
-                throw new Error("connectionResponse is not ok");
-              }
-              console.log("set remote description");
-              await rtc.current?.setRemoteDescription(JSON.parse(data.message.sdp));
-
-              break;
-            }
-            case "ice": {
-              console.log("add ice candidate");
-              await rtc.current?.addIceCandidate(JSON.parse(data.message.ice));
-
-              break;
-            }
-
-            default:
-              break;
+            break;
           }
-        });
-        ws.addEventListener("close", () => {
-          console.log("Connection closed");
-          rtc.current?.close();
-          rtc.current = undefined;
-        });
-        ws.addEventListener("error", error => {
-          console.error("event WebSocket error:", error);
-        });
-      } catch (error) {
-        console.error("WebSocket error:", error);
-      }
-    })();
+          case "ice": {
+            console.log("add ice candidate");
+            await rtc?.addIceCandidate(JSON.parse(data.message.ice));
+
+            break;
+          }
+
+          default:
+            break;
+        }
+      });
+      ws.addEventListener("close", () => {
+        console.log("Connection closed");
+        rtc?.close();
+      });
+      ws.addEventListener("error", error => {
+        console.error("event WebSocket error:", error);
+      });
+    } catch (error) {
+      console.error("WebSocket error:", error);
+    }
     return () => {
       ws.addEventListener("open", () => {
-        if (ws.readyState === ws.OPEN) {
-          ws.close();
-        }
-        rtc.current?.close();
+        ws.close();
+        rtc?.close();
       });
     };
   }, [roomId]);
 
   return (
-    <>
+    <Container>
       <Flex gap="md" wrap="wrap">
         <For each={receiveFiles}>
           {(receiveFiles, i) => (
@@ -193,6 +196,6 @@ export default function Receiver() {
           )}
         </For>
       </Flex>
-    </>
+    </Container>
   );
 }
