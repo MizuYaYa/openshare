@@ -1,6 +1,8 @@
 import Receivers from "@/components/Receivers";
 import { RTCSession } from "@/utils/webRTC";
 import { Dropzone } from "@yamada-ui/dropzone";
+import { ArrowUpFromLineIcon, ClipboardCheckIcon, CopyIcon, FileIcon, FilesIcon, TrashIcon } from "@yamada-ui/lucide";
+
 import {
   Box,
   Button,
@@ -9,18 +11,30 @@ import {
   CardFooter,
   CardHeader,
   Center,
+  Container,
   Fieldset,
   Flex,
   For,
   FormatByte,
   Heading,
+  IconButton,
   Input,
   InputGroup,
   InputRightElement,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  Rating,
+  ScrollArea,
+  Spacer,
   Stack,
   Tag,
   Text,
+  Tooltip,
+  useBreakpoint,
   useClipboard,
+  useDisclosure,
+  useNotice,
 } from "@yamada-ui/react";
 import type { ClientData, SenderMessage, ServerMessage } from "openshare";
 import { QRCodeSVG } from "qrcode.react";
@@ -30,9 +44,12 @@ import { browserName, osName } from "react-device-detect";
 export default function Sender() {
   const [wsState, setWsState] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
-  const [roomId, setRoomId] = useState<undefined | string>();
   const [receivers, setReceivers] = useState<(ClientData & { id: string; isReady: boolean })[]>([]);
+  const [connectURL, setConnectURL] = useState<string>("");
   const { onCopy, hasCopied } = useClipboard();
+  const { open, onOpen, onClose } = useDisclosure();
+  const breakpoint = useBreakpoint();
+  const notice = useNotice();
   const rtcS = useRef(new RTCSession());
   const serverStatus = ["接続試行中", "通信中", "切断中", "切断"];
 
@@ -53,7 +70,7 @@ export default function Sender() {
         const data: ServerMessage = JSON.parse(event.data);
         switch (data.type) {
           case "roomId":
-            setRoomId(data.message);
+            setConnectURL(`${location.href}connect/${data.message}`);
             break;
 
           case "connectionRequest": {
@@ -119,6 +136,8 @@ export default function Sender() {
       });
       ws.addEventListener("close", () => {
         console.log("Connection closed");
+        setConnectURL("");
+
         for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
         }
@@ -131,12 +150,10 @@ export default function Sender() {
     }
     return () => {
       ws.addEventListener("open", () => {
-        if (ws.readyState === ws.OPEN) {
           ws.close();
-        }
         for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
-        }
+        } 
       });
     };
   }, []);
@@ -145,8 +162,8 @@ export default function Sender() {
   const maxFiles = 5;
 
   return (
-    <>
-      <Flex mx="xl" gap="xl">
+    <Container>
+      <Flex gap={{ base: "xl", md: "sm" }} wrap={{ base: "nowrap", md: "wrap" }}>
         <Dropzone
           multiple
           maxSize={maxTransferSize}
@@ -164,7 +181,10 @@ export default function Sender() {
               //警告を出す
             }
           }}
-          size="sm"
+          size={{ base: "md", md: "full" }}
+          w="6xl"
+          invalid={files.length === maxFiles}
+          disabled={files.length === maxFiles}
         >
           <Text fontSize="xl">
             ドラッグ&ドロップかクリックしてファイルを追加
@@ -175,27 +195,58 @@ export default function Sender() {
             {maxFiles}ファイルまで
           </Text>
         </Dropzone>
-        <Box>
-          <Heading fontSize="sm">送信ファイル</Heading>
-          <Stack>
+        <Box minW={{ base: "lg", lg: "sm", md: "full" }} flexGrow={1}>
+          <Heading fontSize="md" m="sm" display="flex" gap="sm" alignItems="center" whiteSpace="nowrap">
+            <Rating
+              readOnly
+              items={maxFiles}
+              value={files.length}
+              emptyIcon={<FileIcon />}
+              filledIcon={<FileIcon />}
+              color={files.length === maxFiles ? "yellow.400" : "green.400"}
+              aria-label={`${files.length} of ${maxFiles} files`}
+            />{" "}
+            <FormatByte value={files.reduce((a, c) => a + c.size, 0)} />
+          </Heading>
+          <ScrollArea
+            type="always"
+            innerProps={{ as: Stack }}
+            maxH="sm"
+            p="sm"
+            borderRadius="md"
+            shadow="inner"
+            overflowX="hidden"
+          >
             <For each={files} fallback={<Center>ファイルがありません</Center>}>
               {(file, i) => (
                 <Card key={i}>
                   <CardHeader>
-                    <Heading fontSize="sm">{file.name}</Heading>
+                    <Tooltip label={file.name} placement="top" fontSize="xs">
+                      <Heading fontSize="sm" overflow="hidden" textOverflow="ellipsis" lineClamp={2}>
+                        {file.name}
+                      </Heading>
+                    </Tooltip>
                   </CardHeader>
                   <CardBody>
                     <Text>{}</Text>
-                    <FormatByte value={file.size} />
                   </CardBody>
-                  <CardFooter>{}</CardFooter>
+                  <CardFooter>
+                    <FormatByte value={file.size} />
+                    <Spacer />
+                    <IconButton
+                      icon={<TrashIcon />}
+                      onClick={() => {
+                        setFiles(prev => prev.filter(f => f !== file));
+                      }}
+                    />
+                  </CardFooter>
                 </Card>
               )}
             </For>
-          </Stack>
+          </ScrollArea>
         </Box>
       </Flex>
-      <Flex m="xl">
+      <Flex wrap={{ md: "wrap" }}>
         <Box>
           <Fieldset
             legend="共有URL"
@@ -207,24 +258,49 @@ export default function Sender() {
             }
           >
             <InputGroup size="md">
-              <Input value={roomId ? `${location.href}connect/${roomId}` : ""} readOnly htmlSize={75} name="roomId" />
-              <InputRightElement w="5xs" clickable>
-                <Button
-                  onClick={() => onCopy(`${location.href}connect/${roomId}`)}
-                  h="1.75rem"
+              <Input value={connectURL} readOnly htmlSize={75} name="roomId" pr="20" />
+              <InputRightElement clickable>
+                <IconButton
+                  icon={hasCopied ? <ClipboardCheckIcon /> : <CopyIcon />}
+                  onClick={() => {
+                    onCopy(connectURL);
+
+                    if (breakpoint !== "sm" && breakpoint !== "md") {
+                      notice({
+                        duration: 1500,
+                        title: "Copied",
+                        description: connectURL,
+                        status: "success",
+                        isClosable: true,
+                        placement: "bottom-left",
+                      });
+                    }
+                  }}
                   size="sm"
-                  disabled={!roomId}
-                >
-                  {hasCopied ? "Copied!" : "Copy"}
-                </Button>
+                  variant="ghost"
+                  color={hasCopied ? "green" : undefined}
+                  disabled={!connectURL}
+                />
               </InputRightElement>
             </InputGroup>
           </Fieldset>
-          {roomId ? <QRCodeSVG value={`${location.href}connect/${roomId}`} /> : null}
+          <Box display="inline-flex" p="md" onClick={onOpen} cursor="pointer">
+            {connectURL ? <QRCodeSVG value={connectURL} /> : null}
+            <Modal open={open} onClose={onClose} size="2xl" bgColor="#FFF">
+              <ModalBody overflow="hidden">
+                {connectURL ? <QRCodeSVG value={connectURL} size={512} width="100%" marginSize={4} /> : null}
+              </ModalBody>
+              <ModalFooter>
+                <Text fontSize="2xs">{connectURL}</Text>
+              </ModalFooter>
+            </Modal>
+          </Box>
         </Box>
         <Box p="md">
-          <Flex gap="md" mb="lg">
-            <Heading fontSize="xl">受信者</Heading>
+          <Flex gapX="md" mb="lg" alignItems="center" wrap={{ sm: "wrap" }}>
+            <Heading fontSize="xl" p="xs" whiteSpace="nowrap">
+              受信者
+            </Heading>
             <Button
               size="sm"
               px="xl"
@@ -235,11 +311,12 @@ export default function Sender() {
               }}
             >
               送信する
+              <ArrowUpFromLineIcon />
             </Button>
           </Flex>
           <Receivers receivers={receivers} />
         </Box>
       </Flex>
-    </>
+    </Container>
   );
 }
