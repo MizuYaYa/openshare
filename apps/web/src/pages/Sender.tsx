@@ -1,57 +1,21 @@
-import Receivers from "@/components/Receivers";
 import { RTCSession } from "@/utils/webRTC";
 import { Dropzone } from "@yamada-ui/dropzone";
-import { ArrowUpFromLineIcon, ClipboardCheckIcon, CopyIcon, FileIcon, FilesIcon, TrashIcon } from "@yamada-ui/lucide";
-
-import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  Center,
-  Container,
-  Fieldset,
-  Flex,
-  For,
-  FormatByte,
-  Heading,
-  IconButton,
-  Input,
-  InputGroup,
-  InputRightElement,
-  Modal,
-  ModalBody,
-  ModalFooter,
-  Rating,
-  ScrollArea,
-  Spacer,
-  Stack,
-  Tag,
-  Text,
-  Tooltip,
-  useBreakpoint,
-  useClipboard,
-  useDisclosure,
-  useNotice,
-} from "@yamada-ui/react";
+import { ArrowUpFromLineIcon, FileIcon } from "@yamada-ui/lucide";
+import { Box, Button, Container, Flex, FormatByte, Heading, Rating, Text } from "@yamada-ui/react";
 import type { ClientData, SenderMessage, ServerMessage } from "openshare";
-import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
+
+import FileList from "@/components/Files";
+import Receivers from "@/components/Receivers";
+import WSSignalingURL from "@/components/sender/WSSignalingURL";
 
 export default function Sender() {
   const [wsState, setWsState] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [receivers, setReceivers] = useState<(ClientData & { id: string; isReady: boolean })[]>([]);
   const [connectURL, setConnectURL] = useState<string>("");
-  const { onCopy, hasCopied } = useClipboard();
-  const { open, onOpen, onClose } = useDisclosure();
-  const breakpoint = useBreakpoint();
-  const notice = useNotice();
   const rtcS = useRef(new RTCSession());
-  const serverStatus = ["接続試行中", "通信中", "切断中", "切断"];
 
   useEffect(() => {
     let ws: WebSocket;
@@ -208,94 +172,11 @@ export default function Sender() {
             />{" "}
             <FormatByte value={files.reduce((a, c) => a + c.size, 0)} />
           </Heading>
-          <ScrollArea
-            type="always"
-            innerProps={{ as: Stack }}
-            maxH="sm"
-            p="sm"
-            borderRadius="md"
-            shadow="inner"
-            overflowX="hidden"
-          >
-            <For each={files} fallback={<Center>ファイルがありません</Center>}>
-              {(file, i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Tooltip label={file.name} placement="top" fontSize="xs">
-                      <Heading fontSize="sm" overflow="hidden" textOverflow="ellipsis" lineClamp={2}>
-                        {file.name}
-                      </Heading>
-                    </Tooltip>
-                  </CardHeader>
-                  <CardBody>
-                    <Text>{}</Text>
-                  </CardBody>
-                  <CardFooter>
-                    <FormatByte value={file.size} />
-                    <Spacer />
-                    <IconButton
-                      icon={<TrashIcon />}
-                      onClick={() => {
-                        setFiles(prev => prev.filter(f => f !== file));
-                      }}
-                    />
-                  </CardFooter>
-                </Card>
-              )}
-            </For>
-          </ScrollArea>
+          <FileList files={files} setFiles={setFiles} />
         </Box>
       </Flex>
       <Flex wrap={{ md: "wrap" }}>
-        <Box>
-          <Fieldset
-            legend="共有URL"
-            helperMessage="受信者にURLを共有します"
-            optionalIndicator={
-              <Tag size="sm" ms="sm">
-                {serverStatus[wsState]}
-              </Tag>
-            }
-          >
-            <InputGroup size="md">
-              <Input value={connectURL} readOnly htmlSize={75} name="roomId" pr="20" />
-              <InputRightElement clickable>
-                <IconButton
-                  icon={hasCopied ? <ClipboardCheckIcon /> : <CopyIcon />}
-                  onClick={() => {
-                    onCopy(connectURL);
-
-                    if (breakpoint !== "sm" && breakpoint !== "md") {
-                      notice({
-                        duration: 1500,
-                        title: "Copied",
-                        description: connectURL,
-                        status: "success",
-                        isClosable: true,
-                        placement: "bottom-left",
-                      });
-                    }
-                  }}
-                  size="sm"
-                  variant="ghost"
-                  color={hasCopied ? "green" : undefined}
-                  disabled={!connectURL}
-                />
-              </InputRightElement>
-            </InputGroup>
-          </Fieldset>
-          <Box display="inline-flex" p="md" onClick={onOpen} cursor="pointer">
-            {connectURL ? <QRCodeSVG value={connectURL} /> : null}
-            <Modal open={open} onClose={onClose} size="2xl" bgColor="#FFF">
-              <ModalBody overflow="hidden">
-                {connectURL ? <QRCodeSVG value={connectURL} size={512} width="100%" marginSize={4} /> : null}
-              </ModalBody>
-              <ModalFooter>
-                <Text fontSize="2xs">{connectURL}</Text>
-              </ModalFooter>
-            </Modal>
-          </Box>
-        </Box>
+        <WSSignalingURL connectURL={connectURL} wsState={wsState} />
         <Box p="md">
           <Flex gapX="md" mb="lg" alignItems="center" wrap={{ sm: "wrap" }}>
             <Heading fontSize="xl" p="xs" whiteSpace="nowrap">
