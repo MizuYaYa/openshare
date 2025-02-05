@@ -114,10 +114,10 @@ export default function Sender() {
     }
     return () => {
       ws.addEventListener("open", () => {
-          ws.close();
+        ws.close();
         for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
-        } 
+        }
       });
     };
   }, []);
