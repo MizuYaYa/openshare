@@ -15,6 +15,8 @@ import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
 import { useParams } from "react-router";
 
+import ConnectionState, { type SenderStatus } from "@/components/receiver/connectionState";
+
 type ReceiveFile = {
   name: string;
   size: number;
@@ -30,6 +32,8 @@ type Files = {
 export default function Receiver() {
   const { roomId } = useParams();
   const [receiveFiles, setReceiveFiles] = useState<ReceiveFile[]>([]);
+  const [wsState, setWsState] = useState(0);
+  const [senderStatus, setSenderStatus] = useState<SenderStatus>();
   const files = useRef(new Set<Files>());
 
   useEffect(() => {
@@ -43,6 +47,7 @@ export default function Receiver() {
       ws.addEventListener("open", async () => {
         console.log("Connection opened");
 
+        setWsState(ws.readyState);
         rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
         if (!rtc) {
           throw new Error("rtc is empty");
@@ -55,6 +60,7 @@ export default function Receiver() {
         rtc.addEventListener("connectionstatechange", () => {
           console.log("Connection state change", rtc?.connectionState);
 
+          setSenderStatus((prev) => ({ ...prev, rtcState: rtc?.connectionState }));
           if (rtc?.connectionState === "closed") {
             rtc?.close();
           }
@@ -129,17 +135,38 @@ export default function Receiver() {
           case "connectionResponse": {
             if (!data.message.ok) {
               rtc?.close();
+              setSenderStatus((prev) => ({ rtcState: prev?.rtcState, isOk: false }));
               throw new Error("connectionResponse is not ok");
             }
             console.log("set remote description");
             await rtc?.setRemoteDescription(JSON.parse(data.message.sdp));
 
+            const responseData = { clientData: data.message.clientData, isOk: true };
+            setSenderStatus((prev) => ({ ...prev, ...responseData }));
             break;
           }
+
           case "ice": {
             console.log("add ice candidate");
             await rtc?.addIceCandidate(JSON.parse(data.message.ice));
+            break;
+          }
 
+          case "connectionState": {
+            if (data.message.state === "disconnected") {
+              rtc?.close();
+              setSenderStatus((prev) => ({ rtcState: prev?.rtcState, isOk: false, isError: "disconnected" }));
+            }
+            break;
+          }
+
+          case "error": {
+            console.error("error", data.message);
+            setSenderStatus({ isOk: false, isError: data.message });
+
+            if (data.message === "INVALID_ROOM_ID") {
+              ws.close();
+            }
             break;
           }
 
@@ -149,10 +176,12 @@ export default function Receiver() {
       }, { signal });
       ws.addEventListener("close", () => {
         console.log("Connection closed");
+        setWsState(ws.readyState);
         rtc?.close();
       }, { signal });
       ws.addEventListener("error", error => {
         console.error("event WebSocket error:", error);
+        setWsState(ws.readyState);
       }, { signal });
     } catch (error) {
       console.error("WebSocket error:", error);
@@ -161,6 +190,7 @@ export default function Receiver() {
       controller.abort("Receiver page unmounted");
       ws.addEventListener("open", () => {
         ws.close();
+        setWsState(ws.readyState);
         rtc?.close();
       }, { once: true });
     };
@@ -168,6 +198,7 @@ export default function Receiver() {
 
   return (
     <Container>
+      <ConnectionState wsState={wsState} senderStatus={senderStatus} />
       <Flex gap="md" wrap="wrap">
         <For each={receiveFiles}>
           {(receiveFiles, i) => (

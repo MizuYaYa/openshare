@@ -103,21 +103,25 @@ export default function Sender() {
       ws.addEventListener("close", () => {
         console.log("Connection closed");
         setConnectURL("");
-
+        setWsState(ws.readyState);
         for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
         }
       }, { signal });
       ws.addEventListener("error", error => {
         console.error("event WebSocket error:", error);
+        setConnectURL("");
+        setWsState(ws.readyState);
       }, { signal });
     } catch (error) {
       console.error("WebSocket error:", error);
     }
     return () => {
       controller.abort("Sender page unmounted");
+      setConnectURL("");
       ws.addEventListener("open", () => {
         ws.close();
+        setWsState(ws.readyState);
         for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
         }

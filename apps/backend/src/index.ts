@@ -106,6 +106,8 @@ app
         onClose: () => {
           log.debug(`connection closed ${roomId}`);
           for (const receiver of connections.get(roomId)?.receivers || []) {
+            const c: ServerMessage = { type: "connectionState", message: { state: "disconnected", id: receiver.id } };
+            receiver.ws.send(JSON.stringify(c));
             receiver.ws.close();
           }
           connections.delete(roomId);

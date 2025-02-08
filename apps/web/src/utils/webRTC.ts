@@ -30,7 +30,7 @@ export class RTCSession {
 
   private _rtcDataChannel(rtc: RTCPeerConnection): Promise<RTCDataChannel> {
     return new Promise(resolve => {
-      rtc.ondatachannel = e => {
+      rtc.addEventListener("datachannel", e => {
         e.channel.binaryType = "arraybuffer";
         e.channel.addEventListener(
           "open",
@@ -40,7 +40,7 @@ export class RTCSession {
           },
           { once: true },
         );
-      };
+      }, { once: true });
     });
   }
 

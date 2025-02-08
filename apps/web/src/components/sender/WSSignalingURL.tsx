@@ -17,6 +17,9 @@ import {
   useNotice,
 } from "@yamada-ui/react";
 import { QRCodeSVG } from "qrcode.react";
+import { useEffect, useState } from "react";
+
+import { statusProperties } from "@/utils/ui";
 
 export type WSSignalingURLProps = {
   wsState: number;
@@ -28,8 +31,12 @@ export default function WSSignalingURL({ connectURL, wsState }: WSSignalingURLPr
   const { open, onOpen, onClose } = useDisclosure();
   const breakpoint = useBreakpoint();
   const notice = useNotice();
+  const [wsStateProperties, setWsStateProperties] = useState(statusProperties.getState(wsState));
 
-  const serverStatus = ["接続試行中", "通信中", "切断中", "切断"];
+  useEffect(() => {
+    const status = statusProperties.getState(wsState);
+    setWsStateProperties(status);
+  }, [wsState]);
 
   return (
     <Box>
@@ -37,13 +44,19 @@ export default function WSSignalingURL({ connectURL, wsState }: WSSignalingURLPr
         legend="共有URL"
         helperMessage="受信者にURLを共有します"
         optionalIndicator={
-          <Tag size="sm" ms="sm">
-            {serverStatus[wsState]}
+          <Tag
+            startIcon={wsStateProperties.icon}
+            size="sm"
+            ms="sm"
+            color={wsStateProperties.color}
+            bg={wsStateProperties.bgColor}
+          >
+            {wsStateProperties.title}
           </Tag>
         }
       >
         <InputGroup size="md">
-          <Input value={connectURL} readOnly htmlSize={75} name="roomId" pr="20" />
+          <Input value={connectURL} readOnly htmlSize={75} name="roomId" pr="20" disabled={!connectURL} />
           <InputRightElement clickable>
             <IconButton
               icon={hasCopied ? <ClipboardCheckIcon /> : <CopyIcon />}
