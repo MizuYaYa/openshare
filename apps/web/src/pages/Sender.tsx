@@ -18,6 +18,8 @@ export default function Sender() {
   const rtcS = useRef(new RTCSession());
 
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
     let ws: WebSocket;
     try {
       ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/host`);
@@ -28,7 +30,7 @@ export default function Sender() {
         setWsState(ws.readyState);
         const c: SenderMessage = { type: "clientData", message: { os: osName, browser: browserName } };
         ws.send(JSON.stringify(c));
-      });
+      }, { signal });
       ws.addEventListener("message", async event => {
         console.log("Message from server: ", JSON.parse(event.data));
         const data: ServerMessage = JSON.parse(event.data);
@@ -97,7 +99,7 @@ export default function Sender() {
           default:
             break;
         }
-      });
+      }, { signal });
       ws.addEventListener("close", () => {
         console.log("Connection closed");
         setConnectURL("");
@@ -105,20 +107,21 @@ export default function Sender() {
         for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
         }
-      });
+      }, { signal });
       ws.addEventListener("error", error => {
         console.error("event WebSocket error:", error);
-      });
+      }, { signal });
     } catch (error) {
       console.error("WebSocket error:", error);
     }
     return () => {
+      controller.abort("Sender page unmounted");
       ws.addEventListener("open", () => {
         ws.close();
         for (const [_, { connection }] of rtcS.current.connections) {
           connection.close();
         }
-      });
+      }, { once: true });
     };
   }, []);
 

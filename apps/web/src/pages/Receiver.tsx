@@ -33,6 +33,8 @@ export default function Receiver() {
   const files = useRef(new Set<Files>());
 
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
     let ws: WebSocket;
     let rtc: RTCPeerConnection;
     try {
@@ -56,13 +58,13 @@ export default function Receiver() {
           if (rtc?.connectionState === "closed") {
             rtc?.close();
           }
-        });
+        }, { signal });
 
         dataChannel.binaryType = "arraybuffer";
 
         dataChannel.addEventListener("open", () => {
           console.log("DataChannel opened");
-        });
+        }, { signal });
         dataChannel.addEventListener("message", event => {
           if (event.data instanceof ArrayBuffer) {
             const file = Array.from(files.current.values()).find(file => file.isPending);
@@ -95,7 +97,7 @@ export default function Receiver() {
             files.current.add({ ...file, receiveSize: 0, file: [] });
             setReceiveFiles(files => [...files, { ...file }]);
           }
-        });
+        }, { signal });
         const sdp = await rtc.createOffer();
         await rtc.setLocalDescription(sdp);
         if (!rtc.localDescription) {
@@ -110,15 +112,15 @@ export default function Receiver() {
         };
         ws.send(JSON.stringify(c));
 
-        rtc.onicecandidate = event => {
+        rtc.addEventListener("icecandidate", event => {
           if (event.candidate) {
             console.log("onicecandidate", event.candidate);
 
             const c: ReceiverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
             ws.send(JSON.stringify(c));
           }
-        };
-      });
+        }, { signal });
+      }, { signal });
       ws.addEventListener("message", async event => {
         console.log("Message from server: ", JSON.parse(event.data));
 
@@ -144,22 +146,23 @@ export default function Receiver() {
           default:
             break;
         }
-      });
+      }, { signal });
       ws.addEventListener("close", () => {
         console.log("Connection closed");
         rtc?.close();
-      });
+      }, { signal });
       ws.addEventListener("error", error => {
         console.error("event WebSocket error:", error);
-      });
+      }, { signal });
     } catch (error) {
       console.error("WebSocket error:", error);
     }
     return () => {
+      controller.abort("Receiver page unmounted");
       ws.addEventListener("open", () => {
         ws.close();
         rtc?.close();
-      });
+      }, { once: true });
     };
   }, [roomId]);
 
