@@ -1,4 +1,6 @@
+import { TriangleAlertIcon } from "@yamada-ui/lucide";
 import {
+  Box,
   Button,
   Card,
   CardBody,
@@ -9,11 +11,13 @@ import {
   For,
   FormatByte,
   Progress,
+  Text,
 } from "@yamada-ui/react";
 import type { ReceiverMessage, ServerMessage } from "openshare";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
 import { useParams } from "react-router";
+import { decodeTime } from "ulid";
 
 import ConnectionState, { type SenderStatus } from "@/components/receiver/connectionState";
 
@@ -196,40 +200,89 @@ export default function Receiver() {
     };
   }, [roomId]);
 
+  const validateIdFormat = (id?: string) => {
+    if (!id) {
+      return null;
+    }
+    try {
+      const decoded = decodeTime(id);
+      if (decoded < 0 || decoded > Date.now()) {
+        return false;
+      }
+    } catch {
+      return null;
+    }
+    return true;
+  };
+
+  const ErrorFrame = () => {
+    if (senderStatus?.isOk || !roomId) {
+      return null;
+    }
+    if (senderStatus?.isError === "INVALID_ROOM_ID") {
+      return (
+        <Flex
+          flexDir="column"
+          pos="fixed"
+          top="25%"
+          left="50%"
+          transform="translateX(-50%)"
+          bgColor="white"
+          borderRadius="md"
+          p="lg"
+          boxShadow="md"
+        >
+          <TriangleAlertIcon fontSize="6xl" color="red.400" />
+          <Text>無効なルームIDです</Text>
+          <Text color="gray.300">{roomId}</Text>
+          <Text color="gray.300">
+            {validateIdFormat(roomId)
+              ? `${Math.trunc((Date.now() - decodeTime(roomId)) / 60000)}分前に作成された部屋はもう消えました・・・`
+              : "形式が無効なルームIDです"}
+          </Text>
+        </Flex>
+      );
+    }
+    return null;
+  }
+
   return (
-    <Container>
-      <ConnectionState wsState={wsState} senderStatus={senderStatus} />
-      <Flex gap="md" wrap="wrap">
-        <For each={receiveFiles}>
-          {(receiveFiles, i) => (
-            <Card key={i}>
-              <CardHeader>{receiveFiles.name}</CardHeader>
-              <CardBody>
-                <Progress hasStripe={receiveFiles.isPending} />
-              </CardBody>
-              <CardFooter>
-                <FormatByte value={receiveFiles.size} />
-                <Button
-                  disabled={receiveFiles.isPending}
-                  onClick={() => {
-                    const file = Array.from(files.current.values()).find(file => file.name === receiveFiles.name);
-                    const blob = new Blob(file?.file, { type: receiveFiles.type });
-                    const src = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = src;
-                    a.download = receiveFiles.name;
-                    a.click();
-                    URL.revokeObjectURL(src);
-                  }}
-                  size="xs"
-                >
-                  保存
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-        </For>
-      </Flex>
-    </Container>
+    <>
+      <ErrorFrame />
+      <Container>
+        <ConnectionState wsState={wsState} senderStatus={senderStatus} />
+        <Flex gap="md" wrap="wrap">
+          <For each={receiveFiles} fallback={<Box>ファイルがありません</Box>}>
+            {(receiveFiles, i) => (
+              <Card key={i}>
+                <CardHeader>{receiveFiles.name}</CardHeader>
+                <CardBody>
+                  <Progress hasStripe={receiveFiles.isPending} />
+                </CardBody>
+                <CardFooter>
+                  <FormatByte value={receiveFiles.size} />
+                  <Button
+                    disabled={receiveFiles.isPending}
+                    onClick={() => {
+                      const file = Array.from(files.current.values()).find(file => file.name === receiveFiles.name);
+                      const blob = new Blob(file?.file, { type: receiveFiles.type });
+                      const src = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = src;
+                      a.download = receiveFiles.name;
+                      a.click();
+                      URL.revokeObjectURL(src);
+                    }}
+                    size="xs"
+                  >
+                    保存
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
+          </For>
+        </Flex>
+      </Container>
+    </>
   );
 }
