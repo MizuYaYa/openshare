@@ -30,17 +30,16 @@ export class RTCSession {
 
   private _rtcDataChannel(rtc: RTCPeerConnection): Promise<RTCDataChannel> {
     return new Promise(resolve => {
-      rtc.addEventListener("datachannel", e => {
+      function dataChannelHandler(e: RTCDataChannelEvent) {
         e.channel.binaryType = "arraybuffer";
-        e.channel.addEventListener(
-          "open",
-          () => {
-            console.log(`DataChannel ${e.channel.label} is opened`);
-            resolve(e.channel);
-          },
-          { once: true },
-        );
-      }, { once: true });
+
+        function channelOpenHandler() {
+          console.log(`DataChannel ${e.channel.label} is opened`);
+          resolve(e.channel);
+        }
+        e.channel.addEventListener("open", channelOpenHandler, { once: true });
+      }
+      rtc.addEventListener("datachannel", dataChannelHandler, { once: true });
     });
   }
 

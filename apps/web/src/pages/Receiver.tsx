@@ -45,7 +45,8 @@ export default function Receiver() {
     const { signal } = controller;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/connect/${roomId}`);
     let rtc: RTCPeerConnection;
-    ws.addEventListener("open", async () => {
+
+    async function openHandler() {
       console.log("Connection opened");
 
       setWsState(ws.readyState);
@@ -58,21 +59,22 @@ export default function Receiver() {
         throw new Error("dataChannel is empty");
       }
 
-      rtc.addEventListener("connectionstatechange", () => {
+      dataChannel.binaryType = "arraybuffer";
+
+      function connectionStateHandler() {
         console.log("Connection state change", rtc?.connectionState);
 
-        setSenderStatus((prev) => ({ ...prev, rtcState: rtc?.connectionState }));
+        setSenderStatus(prev => ({ ...prev, rtcState: rtc?.connectionState }));
         if (rtc?.connectionState === "closed") {
           rtc?.close();
         }
-      }, { signal });
+      }
 
-      dataChannel.binaryType = "arraybuffer";
-
-      dataChannel.addEventListener("open", () => {
+      function dataChannelOpenHandler() {
         console.log("DataChannel opened");
-      }, { signal });
-      dataChannel.addEventListener("message", event => {
+      }
+
+      function dataChannelMessageHandler(event: MessageEvent) {
         if (event.data instanceof ArrayBuffer) {
           const file = Array.from(files.current.values()).find(file => file.isPending);
           if (!file) {
@@ -104,7 +106,22 @@ export default function Receiver() {
           files.current.add({ ...file, receiveSize: 0, file: [] });
           setReceiveFiles(files => [...files, { ...file }]);
         }
-      }, { signal });
+      }
+
+      function iceHandler(event: RTCPeerConnectionIceEvent) {
+        if (event.candidate) {
+          console.log("onicecandidate", event.candidate);
+
+          const c: ReceiverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
+          ws.send(JSON.stringify(c));
+        }
+      }
+
+      rtc.addEventListener("connectionstatechange", connectionStateHandler, { signal });
+      dataChannel.addEventListener("open", dataChannelOpenHandler, { signal });
+      dataChannel.addEventListener("message", dataChannelMessageHandler, { signal });
+      rtc.addEventListener("icecandidate", iceHandler, { signal });
+
       const sdp = await rtc.createOffer();
       await rtc.setLocalDescription(sdp);
       if (!rtc.localDescription) {
@@ -118,17 +135,9 @@ export default function Receiver() {
         },
       };
       ws.send(JSON.stringify(c));
+    }
 
-      rtc.addEventListener("icecandidate", event => {
-        if (event.candidate) {
-          console.log("onicecandidate", event.candidate);
-
-          const c: ReceiverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
-          ws.send(JSON.stringify(c));
-        }
-      }, { signal });
-    }, { signal });
-    ws.addEventListener("message", async event => {
+    async function messageHandler(event: MessageEvent) {
       console.log("Message from server: ", JSON.parse(event.data));
 
       const data: ServerMessage = JSON.parse(event.data);
@@ -136,14 +145,14 @@ export default function Receiver() {
         case "connectionResponse": {
           if (!data.message.ok) {
             rtc?.close();
-            setSenderStatus((prev) => ({ rtcState: prev?.rtcState, isOk: false }));
+            setSenderStatus(prev => ({ rtcState: prev?.rtcState, isOk: false }));
             throw new Error("connectionResponse is not ok");
           }
           console.log("set remote description");
           await rtc?.setRemoteDescription(JSON.parse(data.message.sdp));
 
           const responseData = { clientData: data.message.clientData, isOk: true };
-          setSenderStatus((prev) => ({ ...prev, ...responseData }));
+          setSenderStatus(prev => ({ ...prev, ...responseData }));
           break;
         }
 
@@ -156,7 +165,7 @@ export default function Receiver() {
         case "connectionState": {
           if (data.message.state === "disconnected") {
             rtc?.close();
-            setSenderStatus((prev) => ({ rtcState: prev?.rtcState, isOk: false, isError: "disconnected" }));
+            setSenderStatus(prev => ({ rtcState: prev?.rtcState, isOk: false, isError: "disconnected" }));
           }
           break;
         }
@@ -174,22 +183,31 @@ export default function Receiver() {
         default:
           break;
       }
-    }, { signal });
-    ws.addEventListener("close", () => {
+    }
+
+    function closeHandler() {
       console.log("Connection closed");
       setWsState(ws.readyState);
       rtc?.close();
-    }, { signal });
-    ws.addEventListener("error", error => {
+    }
+
+    function errorHandler(error: Event) {
       console.error("event WebSocket error:", error);
       setWsState(ws.readyState);
-    }, { signal });
-    return () => {
+    }
+
+    ws.addEventListener("open", openHandler, { signal });
+    ws.addEventListener("message", messageHandler, { signal });
+    ws.addEventListener("close", closeHandler, { signal });
+    ws.addEventListener("error", errorHandler, { signal });
+
+    function cleanUp() {
       controller.abort("Receiver page unmounted");
       ws.close();
       setWsState(ws.readyState);
       rtc?.close();
-    };
+    }
+    return cleanUp;
   }, [roomId]);
 
   const validateIdFormat = (id?: string) => {
@@ -236,7 +254,7 @@ export default function Receiver() {
       );
     }
     return null;
-  }
+  };
 
   return (
     <>

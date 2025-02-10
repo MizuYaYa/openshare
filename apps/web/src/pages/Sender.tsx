@@ -22,14 +22,15 @@ export default function Sender() {
     const { signal } = controller;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/host`);
 
-    ws.addEventListener("open", () => {
+    function openHandler() {
       console.log("Connection opened");
 
       setWsState(ws.readyState);
       const c: SenderMessage = { type: "clientData", message: { os: osName, browser: browserName } };
       ws.send(JSON.stringify(c));
-    }, { signal });
-    ws.addEventListener("message", async event => {
+    }
+
+    async function messageHandler(event: MessageEvent) {
       console.log("Message from server: ", JSON.parse(event.data));
       const data: ServerMessage = JSON.parse(event.data);
       switch (data.type) {
@@ -44,24 +45,28 @@ export default function Sender() {
           await rtc.setLocalDescription(sdp);
           rtcS.current.setDataChannel(data.message.id, rtc);
 
-          rtc.addEventListener("connectionstatechange", async () => {
+          const { clientData, id } = data.message;
+
+          async function connectionStateHandler() {
             console.log("connectionState", rtc.connectionState);
             if (rtc.connectionState === "connected") {
-              setReceivers(prev => [...prev, { ...data.message.clientData, id: data.message.id, isReady: true }]);
+              setReceivers(prev => [...prev, { ...clientData, id, isReady: true }]);
             }
-          });
+          }
 
-          rtc.addEventListener("icecandidate", event => {
+          function iceHandler(event: RTCPeerConnectionIceEvent) {
             if (event.candidate) {
               console.log("onicecandidate", event.candidate);
 
               const c: SenderMessage = {
                 type: "ice",
-                message: { ice: JSON.stringify(event.candidate), id: data.message.id },
+                message: { ice: JSON.stringify(event.candidate), id },
               };
               ws.send(JSON.stringify(c));
             }
-          });
+          }
+          rtc.addEventListener("connectionstatechange", connectionStateHandler, { signal });
+          rtc.addEventListener("icecandidate", iceHandler, { signal });
 
           const c: SenderMessage = {
             type: "connectionResponse",
@@ -97,21 +102,29 @@ export default function Sender() {
         default:
           break;
       }
-    }, { signal });
-    ws.addEventListener("close", () => {
+    }
+
+    function closeHandler() {
       console.log("Connection closed");
       setConnectURL("");
       setWsState(ws.readyState);
       for (const [_, { connection }] of rtcS.current.connections) {
         connection.close();
       }
-    }, { signal });
-    ws.addEventListener("error", error => {
+    }
+
+    function errorHandler(error: Event) {
       console.error("event WebSocket error:", error);
       setConnectURL("");
       setWsState(ws.readyState);
-    }, { signal });
-    return () => {
+    }
+
+    ws.addEventListener("open", openHandler, { signal });
+    ws.addEventListener("message", messageHandler, { signal });
+    ws.addEventListener("close", closeHandler, { signal });
+    ws.addEventListener("error", errorHandler, { signal });
+
+    function cleanUp() {
       controller.abort("Sender page unmounted");
       setConnectURL("");
       ws.close();
@@ -119,7 +132,8 @@ export default function Sender() {
       for (const [_, { connection }] of rtcS.current.connections) {
         connection.close();
       }
-    };
+    }
+    return cleanUp;
   }, []);
 
   const maxTransferSize = 1000 ** 3;
