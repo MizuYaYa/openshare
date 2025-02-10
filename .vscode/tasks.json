@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "command": "pnpm dev --host",
+      "label": "pnpm dev --host",
+      "detail": "start frontend dev server",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": ".*"
+        }
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web/"
+      }
+    },
+    {
+      "type": "shell",
+      "command": "pnpm dev",
+      "label": "pnpm dev",
+      "detail": "start backend dev server",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": ".*"
+        }
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/apps/backend/"
+      }
+    },
+    {
+      "label": "dev",
+      "dependsOn": ["pnpm dev --host", "pnpm dev"],
+      "type": "shell",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": ".*"
+        }
+      },
+    }
+  ]
+}
