@@ -192,11 +192,9 @@ export default function Receiver() {
     }
     return () => {
       controller.abort("Receiver page unmounted");
-      ws.addEventListener("open", () => {
-        ws.close();
-        setWsState(ws.readyState);
-        rtc?.close();
-      }, { once: true });
+      ws.close();
+      setWsState(ws.readyState);
+      rtc?.close();
     };
   }, [roomId]);
 

@@ -119,13 +119,11 @@ export default function Sender() {
     return () => {
       controller.abort("Sender page unmounted");
       setConnectURL("");
-      ws.addEventListener("open", () => {
-        ws.close();
-        setWsState(ws.readyState);
-        for (const [_, { connection }] of rtcS.current.connections) {
-          connection.close();
-        }
-      }, { once: true });
+      ws.close();
+      setWsState(ws.readyState);
+      for (const [_, { connection }] of rtcS.current.connections) {
+        connection.close();
+      }
     };
   }, []);
 
