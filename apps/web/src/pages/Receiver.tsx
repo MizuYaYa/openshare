@@ -19,7 +19,7 @@ import { browserName, osName } from "react-device-detect";
 import { useParams } from "react-router";
 import { decodeTime } from "ulid";
 
-import ConnectionState, { type SenderStatus } from "@/components/receiver/connectionState";
+import ConnectionState, { type SenderStatus } from "@/components/receiver/ConnectionState";
 
 type ReceiveFile = {
   name: string;
