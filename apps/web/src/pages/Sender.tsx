@@ -20,102 +20,97 @@ export default function Sender() {
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
-    let ws: WebSocket;
-    try {
-      ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/host`);
+    const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/host`);
 
-      ws.addEventListener("open", () => {
-        console.log("Connection opened");
+    ws.addEventListener("open", () => {
+      console.log("Connection opened");
 
-        setWsState(ws.readyState);
-        const c: SenderMessage = { type: "clientData", message: { os: osName, browser: browserName } };
-        ws.send(JSON.stringify(c));
-      }, { signal });
-      ws.addEventListener("message", async event => {
-        console.log("Message from server: ", JSON.parse(event.data));
-        const data: ServerMessage = JSON.parse(event.data);
-        switch (data.type) {
-          case "roomId":
-            setConnectURL(`${location.href}connect/${data.message}`);
-            break;
+      setWsState(ws.readyState);
+      const c: SenderMessage = { type: "clientData", message: { os: osName, browser: browserName } };
+      ws.send(JSON.stringify(c));
+    }, { signal });
+    ws.addEventListener("message", async event => {
+      console.log("Message from server: ", JSON.parse(event.data));
+      const data: ServerMessage = JSON.parse(event.data);
+      switch (data.type) {
+        case "roomId":
+          setConnectURL(`${location.href}connect/${data.message}`);
+          break;
 
-          case "connectionRequest": {
-            const rtc = rtcS.current.newConnection(data.message);
-            await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
-            const sdp = await rtc.createAnswer();
-            await rtc.setLocalDescription(sdp);
-            rtcS.current.setDataChannel(data.message.id, rtc);
+        case "connectionRequest": {
+          const rtc = rtcS.current.newConnection(data.message);
+          await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
+          const sdp = await rtc.createAnswer();
+          await rtc.setLocalDescription(sdp);
+          rtcS.current.setDataChannel(data.message.id, rtc);
 
-            rtc.addEventListener("connectionstatechange", async () => {
-              console.log("connectionState", rtc.connectionState);
-              if (rtc.connectionState === "connected") {
-                setReceivers(prev => [...prev, { ...data.message.clientData, id: data.message.id, isReady: true }]);
-              }
-            });
-
-            rtc.addEventListener("icecandidate", event => {
-              if (event.candidate) {
-                console.log("onicecandidate", event.candidate);
-
-                const c: SenderMessage = {
-                  type: "ice",
-                  message: { ice: JSON.stringify(event.candidate), id: data.message.id },
-                };
-                ws.send(JSON.stringify(c));
-              }
-            });
-
-            const c: SenderMessage = {
-              type: "connectionResponse",
-              message: { ok: true, sdp: JSON.stringify(sdp), receiverId: data.message.id },
-            };
-            ws.send(JSON.stringify(c));
-            break;
-          }
-
-          case "ice": {
-            if (!data.message?.id) {
-              throw new Error("id is empty");
+          rtc.addEventListener("connectionstatechange", async () => {
+            console.log("connectionState", rtc.connectionState);
+            if (rtc.connectionState === "connected") {
+              setReceivers(prev => [...prev, { ...data.message.clientData, id: data.message.id, isReady: true }]);
             }
-            const rtc = rtcS.current.connections.get(data.message.id)?.connection;
-            if (!rtc) {
-              throw new Error("rtc is empty");
+          });
+
+          rtc.addEventListener("icecandidate", event => {
+            if (event.candidate) {
+              console.log("onicecandidate", event.candidate);
+
+              const c: SenderMessage = {
+                type: "ice",
+                message: { ice: JSON.stringify(event.candidate), id: data.message.id },
+              };
+              ws.send(JSON.stringify(c));
             }
-            await rtc.addIceCandidate(JSON.parse(data.message.ice));
-            break;
-          }
+          });
 
-          case "connectionState": {
-            console.log("connectionState", data.message);
-
-            if (data.message.state === "disconnected") {
-              setReceivers(prev => prev.filter(r => r.id !== data.message.id));
-              rtcS.current.connections.get(data.message.id)?.connection.close();
-              rtcS.current.connections.delete(data.message.id);
-            }
-            break;
-          }
-
-          default:
-            break;
+          const c: SenderMessage = {
+            type: "connectionResponse",
+            message: { ok: true, sdp: JSON.stringify(sdp), receiverId: data.message.id },
+          };
+          ws.send(JSON.stringify(c));
+          break;
         }
-      }, { signal });
-      ws.addEventListener("close", () => {
-        console.log("Connection closed");
-        setConnectURL("");
-        setWsState(ws.readyState);
-        for (const [_, { connection }] of rtcS.current.connections) {
-          connection.close();
+
+        case "ice": {
+          if (!data.message?.id) {
+            throw new Error("id is empty");
+          }
+          const rtc = rtcS.current.connections.get(data.message.id)?.connection;
+          if (!rtc) {
+            throw new Error("rtc is empty");
+          }
+          await rtc.addIceCandidate(JSON.parse(data.message.ice));
+          break;
         }
-      }, { signal });
-      ws.addEventListener("error", error => {
-        console.error("event WebSocket error:", error);
-        setConnectURL("");
-        setWsState(ws.readyState);
-      }, { signal });
-    } catch (error) {
-      console.error("WebSocket error:", error);
-    }
+
+        case "connectionState": {
+          console.log("connectionState", data.message);
+
+          if (data.message.state === "disconnected") {
+            setReceivers(prev => prev.filter(r => r.id !== data.message.id));
+            rtcS.current.connections.get(data.message.id)?.connection.close();
+            rtcS.current.connections.delete(data.message.id);
+          }
+          break;
+        }
+
+        default:
+          break;
+      }
+    }, { signal });
+    ws.addEventListener("close", () => {
+      console.log("Connection closed");
+      setConnectURL("");
+      setWsState(ws.readyState);
+      for (const [_, { connection }] of rtcS.current.connections) {
+        connection.close();
+      }
+    }, { signal });
+    ws.addEventListener("error", error => {
+      console.error("event WebSocket error:", error);
+      setConnectURL("");
+      setWsState(ws.readyState);
+    }, { signal });
     return () => {
       controller.abort("Sender page unmounted");
       setConnectURL("");
