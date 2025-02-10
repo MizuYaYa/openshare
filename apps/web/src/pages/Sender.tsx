@@ -44,11 +44,11 @@ export default function Sender() {
             await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
             const sdp = await rtc.createAnswer();
             await rtc.setLocalDescription(sdp);
+            rtcS.current.setDataChannel(data.message.id, rtc);
 
             rtc.addEventListener("connectionstatechange", async () => {
               console.log("connectionState", rtc.connectionState);
               if (rtc.connectionState === "connected") {
-                await rtcS.current.setDataChannel(data.message.id, rtc);
                 setReceivers(prev => [...prev, { ...data.message.clientData, id: data.message.id, isReady: true }]);
               }
             });
