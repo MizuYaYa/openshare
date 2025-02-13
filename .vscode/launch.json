@@ -8,13 +8,36 @@
     {
       "type": "chrome",
       "request": "launch",
-      "preLaunchTask": "dev",
+      "preLaunchTask": "pnpm dev --host",
+      "postDebugTask": "app stop",
       "name": "localhost に対して Chrome を起動する",
       "url": "https://localhost:5173",
       "webRoot": "${workspaceFolder}",
       "sourceMaps": true,
       "cwd": "${workspaceFolder}/apps/web/",
       "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+    },
+    {
+      "type": "node-terminal",
+      "request": "launch",
+      "name": "start backend",
+      "command": "pnpm dev",
+      "cwd": "${workspaceFolder}/apps/backend/",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+      "serverReadyAction": {
+        "pattern": "Server is running on https://(.+:[0-9]+)",
+        "uriFormat": "https://%s",
+        "action": "openExternally",
+        "killOnServerStop": true
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "dev",
+      "configurations": ["localhost に対して Chrome を起動する", "start backend"]
     }
   ]
 }

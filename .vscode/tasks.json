@@ -8,14 +8,27 @@
       "detail": "start frontend dev server",
       "isBackground": true,
       "problemMatcher": {
-        "owner": "custom",
-        "pattern": {
-          "regexp": "^$"
-        },
+        "owner": "vite",
+        "source": "vite",
+        "fileLocation": ["relative", "${workspaceFolder}/apps/web/src"],
+        "pattern": [
+          {
+            "regexp": "^\\d+:\\d+:\\d+ \\[vite\\] (.+)\\s+(.+):\\s+(.+)$",
+            "code": 1,
+            "severity": 2,
+            "message": 3
+          },
+          {
+            "regexp": "^\\s+.+\\[.+/(.*):(.*):(.*)\\]$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ],
         "background": {
           "activeOnStart": true,
-          "beginsPattern": ".*",
-          "endsPattern": ".*"
+          "beginsPattern": "^\\s+VITE v\\d+\\.\\d+\\.\\d+  ready in \\d+ ms$",
+          "endsPattern": "^\\s+VITE v\\d+\\.\\d+\\.\\d+  ready in \\d+ ms$"
         }
       },
       "options": {
@@ -23,42 +36,17 @@
       }
     },
     {
+      "label": "app stop",
       "type": "shell",
-      "command": "pnpm dev",
-      "label": "pnpm dev",
-      "detail": "start backend dev server",
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "custom",
-        "pattern": {
-          "regexp": "^$"
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".*",
-          "endsPattern": ".*"
-        }
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/apps/backend/"
-      }
-    },
+      "command": "echo ${input:terminate}"
+    }
+  ],
+  "inputs": [
     {
-      "label": "dev",
-      "dependsOn": ["pnpm dev --host", "pnpm dev"],
-      "type": "shell",
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "custom",
-        "pattern": {
-          "regexp": "^$"
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".*",
-          "endsPattern": ".*"
-        }
-      },
+      "id": "terminate",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "pnpm dev --host"
     }
   ]
 }
