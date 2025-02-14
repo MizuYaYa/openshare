@@ -12,7 +12,7 @@
       "postDebugTask": "app stop",
       "name": "localhost に対して Chrome を起動する",
       "url": "https://localhost:5173",
-      "webRoot": "${workspaceFolder}",
+      "webRoot": "${workspaceFolder}/apps/web",
       "sourceMaps": true,
       "cwd": "${workspaceFolder}/apps/web/",
       "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
