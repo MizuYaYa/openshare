@@ -1,13 +1,14 @@
 import { UIProvider } from "@yamada-ui/react";
-import { StrictMode } from "react";
+import { StrictMode, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
 
 import AppLayout from "@/layouts/AppLayout";
-import About from "@/pages/About";
-import NotFound from "@/pages/NotFound";
-import Receiver from "@/pages/Receiver";
-import Sender from "@/pages/Sender";
+
+const Sender = lazy(() => import("@/pages/Sender"));
+const Receiver = lazy(() => import("@/pages/Receiver"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const About = lazy(() => import("@/pages/About"));
 
 // biome-ignore lint/style/noNonNullAssertion:
 createRoot(document.getElementById("root")!).render(
