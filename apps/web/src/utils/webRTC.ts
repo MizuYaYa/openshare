@@ -3,13 +3,15 @@ import type { ClientData, ConnectionRequestWithId } from "openshare";
 export class RTCSession {
   connections: Map<string, { clientData: ClientData; connection: RTCPeerConnection; dataChannel?: RTCDataChannel }>;
   maxChunkSize: number;
+  iceServer: RTCIceServer;
   constructor() {
     this.connections = new Map();
     this.maxChunkSize = 16 * 1024;
+    this.iceServer = { urls: "stun:stun.cloudflare.com:3478" };
   }
 
   newConnection(connectionData: ConnectionRequestWithId) {
-    const rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
+    const rtc = new RTCPeerConnection({ iceServers: [this.iceServer] });
 
     this.connections.set(connectionData.id, {
       clientData: connectionData.clientData,

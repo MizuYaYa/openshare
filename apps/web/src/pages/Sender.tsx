@@ -99,6 +99,11 @@ export default function Sender() {
           break;
         }
 
+        case "turn": {
+          rtcS.current.iceServer = data.message;
+          break;
+        }
+
         default:
           break;
       }

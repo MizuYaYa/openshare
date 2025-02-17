@@ -19,11 +19,13 @@ export type ConnectionResponse = { ok: true; sdp: string; receiverId: string } |
 
 export type ConnectionResponseToReceiver = { ok: true; sdp: string; clientData: ClientData } | { ok: false };
 
-export type Error = "INVALID_ROOM_ID" | "INVALID_RECEIVER_ID";
+export type Error = "INVALID_ROOM_ID" | "INVALID_RECEIVER_ID" | "CANNOT_USE_TURN";
 
 export type Ice = { ice: string; id?: string };
 
 export type ConnectionState = { id: string; state: "disconnected" };
+
+export type Turn = RTCIceServer;
 
 export type ServerMessage =
   | { type: "roomId"; message: RoomId }
@@ -31,7 +33,8 @@ export type ServerMessage =
   | { type: "connectionResponse"; message: ConnectionResponseToReceiver }
   | { type: "error"; message: Error }
   | { type: "ice"; message: Ice }
-  | { type: "connectionState"; message: ConnectionState };
+  | { type: "connectionState"; message: ConnectionState }
+  | { type: "turn"; message: Turn };
 
 export type SenderMessage =
   | { type: "connectionResponse"; message: ConnectionResponse }

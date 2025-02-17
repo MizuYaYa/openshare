@@ -13,6 +13,7 @@ import type { WSContext } from "hono/ws";
 import log4js from "log4js";
 import type { ClientData, ReceiverMessage, SenderMessage, ServerMessage } from "openshare";
 import { ulid } from "ulid";
+import { createTurnCredential } from "./turn.js";
 
 const log = log4js.getLogger();
 log.level = "all";
@@ -57,8 +58,20 @@ app
                 connection.clientData = data.message;
               }
 
+              createTurnCredential()
+                .then(credential => {
+                  const c: ServerMessage = { type: "turn", message: credential };
+                  ws.send(JSON.stringify(c));
+                })
+                .catch(error => {
+                  log.warn("Failed to create turn credentials: ", error);
+                  const errorMsg: ServerMessage = { type: "error", message: "CANNOT_USE_TURN" };
+                  ws.send(JSON.stringify(errorMsg));
+                });
+
               break;
             }
+
             case "connectionResponse": {
               const connection = connections.get(roomId);
               if (!connection) {
