@@ -152,7 +152,7 @@ export default function Sender() {
           multiple
           maxSize={maxTransferSize}
           maxFiles={5}
-          onDrop={(acceptedFiles, fileRejections) => {
+          onDrop={acceptedFiles => {
             // console.log("accepted files", acceptedFiles, "rejected files", fileRejections);
 
             const preNumOfFiles = files.length + acceptedFiles.length;
