@@ -46,6 +46,8 @@ export default function Receiver() {
     const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/connect/${roomId}`);
     let rtc: RTCPeerConnection;
 
+    setWsState(ws.readyState)
+
     async function openHandler() {
       // console.log("Connection opened");
 

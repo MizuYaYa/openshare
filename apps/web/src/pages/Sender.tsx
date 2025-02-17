@@ -21,6 +21,7 @@ export default function Sender() {
     const controller = new AbortController();
     const { signal } = controller;
     const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/host`);
+    setWsState(ws.readyState);
 
     function openHandler() {
       // console.log("Connection opened");
