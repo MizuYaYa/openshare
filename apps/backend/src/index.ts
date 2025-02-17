@@ -13,8 +13,8 @@ import type { WSContext } from "hono/ws";
 import log4js from "log4js";
 import type { ClientData, ReceiverMessage, SenderMessage, ServerMessage } from "openshare";
 import { ulid } from "ulid";
-import { createTurnCredential } from "./turn.js";
 import { appConfig } from "./config/app.js";
+import { createTurnCredential } from "./turn.js";
 
 const log = log4js.getLogger();
 log.level = "all";
@@ -219,20 +219,20 @@ app
         },
       };
     }),
-  )
-  .get("/", c => {
-    return c.json({
-      connections: Array.from(connections).map(([roomId, connection]) => {
-        return {
-          roomId,
-          senderIp: connection.ip,
-          clientData: connection.clientData,
-          receivers: connection.receivers?.map(r => ({ ip: r.ip, clientData: r.clientData, id: r.id })),
-        };
-      }),
-      numberOfConnections: connections.size,
-    });
-  });
+  );
+// .get("/", c => {
+//   return c.json({
+//     connections: Array.from(connections).map(([roomId, connection]) => {
+//       return {
+//         roomId,
+//         senderIp: connection.ip,
+//         clientData: connection.clientData,
+//         receivers: connection.receivers?.map(r => ({ ip: r.ip, clientData: r.clientData, id: r.id })),
+//       };
+//     }),
+//     numberOfConnections: connections.size,
+//   });
+// });
 
 log.info(`Server is running on https://localhost:${appConfig.app.port}`);
 
