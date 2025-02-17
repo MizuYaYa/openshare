@@ -14,6 +14,7 @@ import log4js from "log4js";
 import type { ClientData, ReceiverMessage, SenderMessage, ServerMessage } from "openshare";
 import { ulid } from "ulid";
 import { createTurnCredential } from "./turn.js";
+import { appConfig } from "./config/app.js";
 
 const log = log4js.getLogger();
 log.level = "all";
@@ -233,12 +234,11 @@ app
     });
   });
 
-const port = 3000;
-log.info(`Server is running on https://localhost:${port}`);
+log.info(`Server is running on https://localhost:${appConfig.app.port}`);
 
 const server = serve({
   fetch: app.fetch,
-  port,
+  port: appConfig.app.port,
   createServer: createSecureServer,
   serverOptions: {
     key: readFileSync("localhost-privkey.pem"),
