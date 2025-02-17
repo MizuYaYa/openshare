@@ -56,7 +56,7 @@ export default function WSSignalingURL({ connectURL, wsState }: WSSignalingURLPr
         }
       >
         <InputGroup size="md">
-          <Input value={connectURL} readOnly htmlSize={75} name="roomId" pr="20" disabled={!connectURL} />
+          <Input value={connectURL} readOnly htmlSize={75} name="roomId" pr="20" disabled={!connectURL} aria-label="共有URL" />
           <InputRightElement clickable>
             <IconButton
               icon={hasCopied ? <ClipboardCheckIcon /> : <CopyIcon />}
@@ -78,6 +78,7 @@ export default function WSSignalingURL({ connectURL, wsState }: WSSignalingURLPr
               variant="ghost"
               color={hasCopied ? "green" : undefined}
               disabled={!connectURL}
+              aria-label="クリップボードにコピー"
             />
           </InputRightElement>
         </InputGroup>
