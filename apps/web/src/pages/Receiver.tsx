@@ -47,7 +47,7 @@ export default function Receiver() {
     let rtc: RTCPeerConnection;
 
     async function openHandler() {
-      console.log("Connection opened");
+      // console.log("Connection opened");
 
       setWsState(ws.readyState);
       rtc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }] });
@@ -62,7 +62,7 @@ export default function Receiver() {
       dataChannel.binaryType = "arraybuffer";
 
       function connectionStateHandler() {
-        console.log("Connection state change", rtc?.connectionState);
+        // console.log("Connection state change", rtc?.connectionState);
 
         setSenderStatus(prev => ({ ...prev, rtcState: rtc?.connectionState }));
         if (rtc?.connectionState === "closed") {
@@ -71,7 +71,7 @@ export default function Receiver() {
       }
 
       function dataChannelOpenHandler() {
-        console.log("DataChannel opened");
+        // console.log("DataChannel opened");
       }
 
       function dataChannelMessageHandler(event: MessageEvent) {
@@ -96,7 +96,7 @@ export default function Receiver() {
 
         const data = JSON.parse(event.data);
         if (data.type === "fileInfo") {
-          console.log("fileInfo", data);
+          // console.log("fileInfo", data);
           const file = {
             name: data.message.name,
             size: data.message.size,
@@ -110,7 +110,7 @@ export default function Receiver() {
 
       function iceHandler(event: RTCPeerConnectionIceEvent) {
         if (event.candidate) {
-          console.log("onicecandidate", event.candidate);
+          // console.log("onicecandidate", event.candidate);
 
           const c: ReceiverMessage = { type: "ice", message: { ice: JSON.stringify(event.candidate) } };
           ws.send(JSON.stringify(c));
@@ -138,7 +138,7 @@ export default function Receiver() {
     }
 
     async function messageHandler(event: MessageEvent) {
-      console.log("Message from server: ", JSON.parse(event.data));
+      // console.log("Message from server: ", JSON.parse(event.data));
 
       const data: ServerMessage = JSON.parse(event.data);
       switch (data.type) {
@@ -148,7 +148,7 @@ export default function Receiver() {
             setSenderStatus(prev => ({ rtcState: prev?.rtcState, isOk: false }));
             throw new Error("connectionResponse is not ok");
           }
-          console.log("set remote description");
+          // console.log("set remote description");
           await rtc?.setRemoteDescription(JSON.parse(data.message.sdp));
 
           const responseData = { clientData: data.message.clientData, isOk: true };
@@ -157,7 +157,7 @@ export default function Receiver() {
         }
 
         case "ice": {
-          console.log("add ice candidate");
+          // console.log("add ice candidate");
           await rtc?.addIceCandidate(JSON.parse(data.message.ice));
           break;
         }
@@ -186,7 +186,7 @@ export default function Receiver() {
     }
 
     function closeHandler() {
-      console.log("Connection closed");
+      // console.log("Connection closed");
       setWsState(ws.readyState);
       rtc?.close();
     }

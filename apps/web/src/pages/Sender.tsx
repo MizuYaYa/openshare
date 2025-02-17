@@ -23,7 +23,7 @@ export default function Sender() {
     const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/host`);
 
     function openHandler() {
-      console.log("Connection opened");
+      // console.log("Connection opened");
 
       setWsState(ws.readyState);
       const c: SenderMessage = { type: "clientData", message: { os: osName, browser: browserName } };
@@ -31,7 +31,7 @@ export default function Sender() {
     }
 
     async function messageHandler(event: MessageEvent) {
-      console.log("Message from server: ", JSON.parse(event.data));
+      // console.log("Message from server: ", JSON.parse(event.data));
       const data: ServerMessage = JSON.parse(event.data);
       switch (data.type) {
         case "roomId":
@@ -48,7 +48,7 @@ export default function Sender() {
           const { clientData, id } = data.message;
 
           async function connectionStateHandler() {
-            console.log("connectionState", rtc.connectionState);
+            // console.log("connectionState", rtc.connectionState);
             if (rtc.connectionState === "connected") {
               setReceivers(prev => [...prev, { ...clientData, id, isReady: true }]);
             }
@@ -56,7 +56,7 @@ export default function Sender() {
 
           function iceHandler(event: RTCPeerConnectionIceEvent) {
             if (event.candidate) {
-              console.log("onicecandidate", event.candidate);
+              // console.log("onicecandidate", event.candidate);
 
               const c: SenderMessage = {
                 type: "ice",
@@ -89,7 +89,7 @@ export default function Sender() {
         }
 
         case "connectionState": {
-          console.log("connectionState", data.message);
+          // console.log("connectionState", data.message);
 
           if (data.message.state === "disconnected") {
             setReceivers(prev => prev.filter(r => r.id !== data.message.id));
@@ -110,7 +110,7 @@ export default function Sender() {
     }
 
     function closeHandler() {
-      console.log("Connection closed");
+      // console.log("Connection closed");
       setConnectURL("");
       setWsState(ws.readyState);
       for (const [_, { connection }] of rtcS.current.connections) {
@@ -152,12 +152,12 @@ export default function Sender() {
           maxSize={maxTransferSize}
           maxFiles={5}
           onDrop={(acceptedFiles, fileRejections) => {
-            console.log("accepted files", acceptedFiles, "rejected files", fileRejections);
+            // console.log("accepted files", acceptedFiles, "rejected files", fileRejections);
 
             const preNumOfFiles = files.length + acceptedFiles.length;
             const preSize = files.reduce((a, c) => a + c.size, 0) + acceptedFiles.reduce((a, c) => a + c.size, 0);
             if (preNumOfFiles <= maxFiles && preSize <= maxTransferSize) {
-              console.log(preNumOfFiles, preSize);
+              // console.log(preNumOfFiles, preSize);
               setFiles(prev => [...prev, ...acceptedFiles]);
             } else {
               console.error("File size or number of files exceeded");
@@ -206,7 +206,7 @@ export default function Sender() {
               px="xl"
               disabled={files.length === 0 || receivers.length === 0 || !receivers.every(r => r.isReady)}
               onClick={() => {
-                console.log("clicked send file button");
+                // console.log("clicked send file button");
                 rtcS.current.sendFiles(files);
               }}
             >

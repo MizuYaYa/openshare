@@ -24,7 +24,7 @@ export class RTCSession {
     const connection = this.connections.get(id);
     if (connection) {
       connection.dataChannel = await this._rtcDataChannel(rtc);
-      console.log("DataChannel created");
+      // console.log("DataChannel created");
     } else {
       throw new Error(`${id} connection not found`);
     }
@@ -36,7 +36,7 @@ export class RTCSession {
         e.channel.binaryType = "arraybuffer";
 
         function channelOpenHandler() {
-          console.log(`DataChannel ${e.channel.label} is opened`);
+          // console.log(`DataChannel ${e.channel.label} is opened`);
           resolve(e.channel);
         }
         e.channel.addEventListener("open", channelOpenHandler, { once: true });
@@ -51,7 +51,7 @@ export class RTCSession {
         if (!connection.dataChannel) {
           throw new Error("dataChannelが無いReceiver");
         }
-        console.log("send file", file.name);
+        // console.log("send file", file.name);
         this.sendFileInfo(file, connection.dataChannel);
         await this.sendFileData(file, connection.dataChannel);
       }
@@ -60,13 +60,13 @@ export class RTCSession {
 
   async sendFileData(file: File, dataChannel: RTCDataChannel) {
     let offset = 0;
-    console.log("send file data", file);
+    // console.log("send file data", file);
 
     const buffer = await file.arrayBuffer();
     const send = () => {
       while (offset < buffer.byteLength) {
         if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
-          console.log("bufferedAmount", dataChannel.bufferedAmount);
+          // console.log("bufferedAmount", dataChannel.bufferedAmount);
           if (!dataChannel.onbufferedamountlow) {
             dataChannel.onbufferedamountlow = () => {
               dataChannel.onbufferedamountlow = null;
