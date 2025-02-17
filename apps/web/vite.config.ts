@@ -1,6 +1,7 @@
 import react from "@vitejs/plugin-react-swc";
 import { defaultConfig, getColorModeScript } from "@yamada-ui/react";
 import { type Plugin, defineConfig } from "vite";
+import tsconfigPaths from "vite-tsconfig-paths";
 
 function injectScript(): Plugin {
   return {
@@ -17,5 +18,11 @@ function injectScript(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), injectScript()],
+  plugins: [react(), injectScript(), tsconfigPaths()],
+  server: {
+    https: {
+      cert: "../backend/localhost-cert.pem",
+      key: "../backend/localhost-privkey.pem",
+    },
+  },
 });

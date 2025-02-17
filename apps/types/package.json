@@ -1,0 +1,6 @@
+{
+  "name": "@types/openshare",
+  "type": "module",
+  "private": true,
+  "types": "src/index.ts"
+}

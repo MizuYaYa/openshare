@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "command": "pnpm dev --host",
+      "label": "pnpm dev --host",
+      "detail": "start frontend dev server",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "source": "vite",
+        "fileLocation": ["relative", "${workspaceFolder}/apps/web/src"],
+        "pattern": [
+          {
+            "regexp": "^\\d+:\\d+:\\d+ \\[vite\\] (.+)\\s+(.+):\\s+(.+)$",
+            "code": 1,
+            "severity": 2,
+            "message": 3
+          },
+          {
+            "regexp": "^\\s+.+\\[.+/(.*):(.*):(.*)\\]$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\s+VITE v\\d+\\.\\d+\\.\\d+  ready in \\d+ ms$",
+          "endsPattern": "^\\s+VITE v\\d+\\.\\d+\\.\\d+  ready in \\d+ ms$"
+        }
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/apps/web/"
+      }
+    },
+    {
+      "label": "app stop",
+      "type": "shell",
+      "command": "echo ${input:terminate}"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "terminate",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "pnpm dev --host"
+    }
+  ]
+}

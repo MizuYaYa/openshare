@@ -19,7 +19,13 @@
       "all": true,
       "style": {
         "noDefaultExport": "off",
-        "noImplicitBoolean": "off"
+        "noImplicitBoolean": "off",
+        "useNamingConvention": {
+          "level": "warn",
+          "options": {
+            "strictCase": false
+          }
+        }
       },
       "correctness": {
         "noUndeclaredDependencies": "off"
@@ -33,6 +39,14 @@
   },
   "overrides": [
     {
+      "include": ["tsconfig.*.json", "tsconfig.json"],
+      "json": {
+        "parser": {
+          "allowComments": true
+        }
+      }
+    },
+    {
       "include": ["apps/web/**"],
       "linter": {
         "rules": {
@@ -45,7 +59,15 @@
     {
       "include": ["apps/backend/**"],
       "linter": {
-        "rules": {}
+        "rules": {
+          "suspicious": {
+            "noConsoleLog": "off",
+            "noConsole": "off"
+          },
+          "correctness": {
+            "noNodejsModules": "off"
+          }
+        }
       }
     }
   ]

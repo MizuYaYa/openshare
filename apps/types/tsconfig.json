@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "NodeNext",
+    "module": "ESNext",
+    "noEmit": true,
     "strict": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
-    "types": ["node"]
-  }
+    "skipLibCheck": false
+  },
+  "include": ["src"]
 }
