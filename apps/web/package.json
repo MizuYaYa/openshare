@@ -4,12 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "react-router dev",
+    "build": "tsc -b && react-router build",
     "lint": "biome lint --write ./",
     "format": "biome format --write ./",
     "check": "biome check ./",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "react-router typegen && tsc -b"
   },
   "dependencies": {
     "@react-router/node": "^7.2.0",

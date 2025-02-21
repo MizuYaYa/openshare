@@ -25,7 +25,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "rootDirs": [".", "./.react-router/types"],
+    "verbatimModuleSyntax": true
   },
-  "include": ["src"]
+  "include": ["src", ".react-router/types/**/*", "app/**/*", "app/**/.server/**/*", "app/**/.client/**/*"]
 }
