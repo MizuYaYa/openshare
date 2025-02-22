@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <Box as="footer">
       <Heading>Open Share</Heading>
-      <Text>v0.1.0</Text>
+      <Text>v0.2.0</Text>
     </Box>
   );
 }
