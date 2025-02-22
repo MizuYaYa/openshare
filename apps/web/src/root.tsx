@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import type { Route } from "./+types/root.ts";
 
+import LoadingScreen from "@/components/LoadingScreen";
+
 export const links: Route.LinksFunction = () => [
   {
     rel: "icon",
@@ -38,6 +40,10 @@ export function Layout({ children }: { children: ReactNode }) {
       </body>
     </html>
   );
+}
+
+export function HydrateFallback() {
+  return <LoadingScreen />;
 }
 
 export default function Root() {
