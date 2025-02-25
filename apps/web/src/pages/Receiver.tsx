@@ -46,7 +46,7 @@ export default function Receiver() {
     const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/connect/${roomId}`);
     let rtc: RTCPeerConnection;
 
-    setWsState(ws.readyState)
+    setWsState(ws.readyState);
 
     async function openHandler() {
       // console.log("Connection opened");
@@ -179,6 +179,12 @@ export default function Receiver() {
           if (data.message === "INVALID_ROOM_ID") {
             ws.close();
           }
+          break;
+        }
+
+        case "ping": {
+          const c: ReceiverMessage = { type: "pong" };
+          ws.send(JSON.stringify(c));
           break;
         }
 
