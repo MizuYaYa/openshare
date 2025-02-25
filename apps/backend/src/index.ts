@@ -37,8 +37,35 @@ type Connection = {
   ws: WSContext<WebSocket>;
   clientData?: ClientData;
   ip?: string;
+  lastReaction: Date;
 };
 const connections = new Map<string, Connection & { receivers: (Connection & { id: string })[] }>();
+
+setInterval(() => {
+  for (const [roomId, connection] of connections) {
+    for (const receiver of connection.receivers) {
+      if (receiver.lastReaction.getTime() + 60000 < Date.now()) {
+        log.debug(`Connection timeout ${receiver.id}`);
+        receiver.ws.close();
+      } else {
+        const c: ServerMessage = { type: "ping" };
+        receiver.ws.send(JSON.stringify(c));
+      }
+    }
+    if (connection.lastReaction.getTime() + 60000 < Date.now()) {
+      log.debug(`Connection timeout ${roomId}`);
+      for (const receiver of connection.receivers) {
+        const c: ServerMessage = { type: "connectionState", message: { state: "disconnected", id: receiver.id } };
+        receiver.ws.send(JSON.stringify(c));
+        receiver.ws.close();
+      }
+      connection.ws.close();
+    } else {
+      const c: ServerMessage = { type: "ping" };
+      connection.ws.send(JSON.stringify(c));
+    }
+  }
+}, 60000);
 
 app
   .get(
@@ -113,6 +140,14 @@ app
               break;
             }
 
+            case "pong": {
+              const connection = connections.get(roomId);
+              if (connection) {
+                connection.lastReaction = new Date();
+              }
+              break;
+            }
+
             default:
               break;
           }
@@ -129,7 +164,7 @@ app
         onOpen: (event, ws) => {
           log.debug(`connection opened ${roomId}`);
 
-          connections.set(roomId, { ws, ip: remote.address, receivers: [] });
+          connections.set(roomId, { ws, ip: remote.address, receivers: [], lastReaction: new Date() });
           const c: ServerMessage = { type: "roomId", message: roomId };
           ws.send(JSON.stringify(c));
         },
@@ -163,7 +198,13 @@ app
                 return;
               }
 
-              sender.receivers.push({ ws, ip: remote.address, clientData: data.message.clientData, id: receiverId });
+              sender.receivers.push({
+                ws,
+                ip: remote.address,
+                clientData: data.message.clientData,
+                id: receiverId,
+                lastReaction: new Date(),
+              });
 
               const c: ServerMessage = {
                 type: "connectionRequest",
@@ -188,6 +229,18 @@ app
 
               break;
             }
+
+            case "pong": {
+              const sender = connections.get(roomId);
+              if (sender) {
+                const receiver = sender.receivers.find(r => r.id === receiverId);
+                if (receiver) {
+                  receiver.lastReaction = new Date();
+                }
+              }
+              break;
+            }
+
             default:
               break;
           }

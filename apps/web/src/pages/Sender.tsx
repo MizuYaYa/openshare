@@ -105,6 +105,12 @@ export default function Sender() {
           break;
         }
 
+        case "ping": {
+          const c: SenderMessage = { type: "pong" };
+          ws.send(JSON.stringify(c));
+          break;
+        }
+
         default:
           break;
       }

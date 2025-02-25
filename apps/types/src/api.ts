@@ -34,11 +34,16 @@ export type ServerMessage =
   | { type: "error"; message: Error }
   | { type: "ice"; message: Ice }
   | { type: "connectionState"; message: ConnectionState }
-  | { type: "turn"; message: Turn };
+  | { type: "turn"; message: Turn }
+  | { type: "ping" };
 
 export type SenderMessage =
   | { type: "connectionResponse"; message: ConnectionResponse }
   | { type: "clientData"; message: ClientData }
-  | { type: "ice"; message: Ice };
+  | { type: "ice"; message: Ice }
+  | { type: "pong" };
 
-export type ReceiverMessage = { type: "connectionRequest"; message: ConnectionRequest } | { type: "ice"; message: Ice };
+export type ReceiverMessage =
+  | { type: "connectionRequest"; message: ConnectionRequest }
+  | { type: "ice"; message: Ice }
+  | { type: "pong" };
