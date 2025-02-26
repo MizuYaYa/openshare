@@ -15,7 +15,7 @@
     "@commitlint/cli": "^19.7.1",
     "@commitlint/config-conventional": "^19.7.1",
     "@commitlint/types": "^19.5.0",
-    "lefthook": "^1.11.0"
+    "lefthook": "^1.11.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": ["@biomejs/biome", "@swc/core", "esbuild", "workerd"]

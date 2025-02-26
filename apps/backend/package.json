@@ -7,17 +7,17 @@
     "start": "tsx --env-file=.env.production.local src/index.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.7",
-    "@hono/node-ws": "^1.0.6",
-    "@hono/zod-validator": "^0.4.2",
-    "hono": "^4.6.19",
+    "@hono/node-server": "^1.13.8",
+    "@hono/node-ws": "^1.1.0",
+    "@hono/zod-validator": "^0.4.3",
+    "hono": "^4.7.2",
     "log4js": "^6.9.1",
     "ulid": "^2.3.0",
-    "zod": "^3.24.1"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/openshare": "workspace:*",
     "@types/node": "^20.11.17",
-    "tsx": "^4.7.1"
+    "@types/openshare": "workspace:*",
+    "tsx": "^4.19.3"
   }
 }
