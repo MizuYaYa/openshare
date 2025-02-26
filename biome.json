@@ -25,6 +25,12 @@
           "options": {
             "strictCase": false
           }
+        },
+        "useFilenamingConvention": {
+          "level": "warn",
+          "options": {
+            "strictCase": false
+          }
         }
       },
       "correctness": {
