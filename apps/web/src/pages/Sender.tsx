@@ -6,7 +6,7 @@ import type { ClientData, SenderMessage, ServerMessage } from "openshare";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
 
-import FileList from "@/components/Files";
+import FileList from "@/components/FileList";
 import Receivers from "@/components/Receivers";
 import WSSignalingURL from "@/components/sender/WSSignalingURL";
 
