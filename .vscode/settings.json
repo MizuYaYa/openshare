@@ -1,3 +1,14 @@
 {
-  "cSpell.words": ["openshare"]
+  "cSpell.words": [
+    "commitlint",
+    "conninfo",
+    "isbot",
+    "lefthook",
+    "openshare",
+    "privkey",
+    "qrcode",
+    "VITE",
+    "webrtc",
+    "workerd"
+  ]
 }

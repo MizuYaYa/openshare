@@ -1,18 +1,23 @@
 {
   "name": "openshare",
   "version": "0.1.0",
-  "description": "",
+  "description": "File sharing web app using webRTC",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check": "biome check ./",
+    "check:fix": "biome check --apply ./"
   },
-  "author": "",
+  "author": "MizuYaYa",
   "license": "MIT",
-  "packageManager": "pnpm@10.0.0+sha512.b8fef5494bd3fe4cbd4edabd0745df2ee5be3e4b0b8b08fa643aa3e4c6702ccc0f00d68fa8a8c9858a735a0032485a44990ed2810526c875e416f001b17df12b",
+  "packageManager": "pnpm@10.5.1+sha512.c424c076bd25c1a5b188c37bb1ca56cc1e136fbf530d98bcb3289982a08fd25527b8c9c4ec113be5e3393c39af04521dd647bcf1d0801eaf8ac6a7b14da313af",
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4"
+    "@biomejs/biome": "^1.9.4",
+    "@commitlint/cli": "^19.7.1",
+    "@commitlint/config-conventional": "^19.7.1",
+    "@commitlint/types": "^19.5.0",
+    "lefthook": "^1.11.2"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@biomejs/biome", "@swc/core", "esbuild", "workerd"]
+    "onlyBuiltDependencies": ["@biomejs/biome", "@swc/core", "esbuild", "lefthook", "workerd"]
   }
 }

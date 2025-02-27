@@ -70,7 +70,7 @@ setInterval(() => {
 app
   .get(
     "/host",
-    upgradeWebSocket(c => {
+    upgradeWebSocket((c) => {
       const { remote } = getConnInfo(c);
       const roomId = c.get("requestId");
 
@@ -87,11 +87,11 @@ app
               }
 
               createTurnCredential()
-                .then(credential => {
+                .then((credential) => {
                   const c: ServerMessage = { type: "turn", message: credential };
                   ws.send(JSON.stringify(c));
                 })
-                .catch(error => {
+                .catch((error) => {
                   log.warn("Failed to create turn credentials: ", error);
                   const errorMsg: ServerMessage = { type: "error", message: "CANNOT_USE_TURN" };
                   ws.send(JSON.stringify(errorMsg));
@@ -106,7 +106,7 @@ app
                 throw new Error("connection not found");
               }
               if (data.message.ok) {
-                const receiver = connection.receivers?.find(r => r.id === data.message.receiverId);
+                const receiver = connection.receivers?.find((r) => r.id === data.message.receiverId);
                 if (!receiver) {
                   const c: ServerMessage = { type: "error", message: "INVALID_RECEIVER_ID" };
                   ws.send(JSON.stringify(c));
@@ -127,7 +127,7 @@ app
             }
 
             case "ice": {
-              const receiver = connections.get(roomId)?.receivers?.find(r => r.id === data.message.id);
+              const receiver = connections.get(roomId)?.receivers?.find((r) => r.id === data.message.id);
               if (!receiver) {
                 const r: ServerMessage = { type: "error", message: "INVALID_RECEIVER_ID" };
                 ws.send(JSON.stringify(r));
@@ -168,7 +168,7 @@ app
           const c: ServerMessage = { type: "roomId", message: roomId };
           ws.send(JSON.stringify(c));
         },
-        onError: error => {
+        onError: (error) => {
           log.error("WebSocket error: ", error);
         },
       };
@@ -176,7 +176,7 @@ app
   )
   .get(
     "/connect/:roomId",
-    upgradeWebSocket(c => {
+    upgradeWebSocket((c) => {
       const { remote } = getConnInfo(c);
       const roomId = c.req.param("roomId");
       const receiverId = c.get("requestId");
@@ -233,7 +233,7 @@ app
             case "pong": {
               const sender = connections.get(roomId);
               if (sender) {
-                const receiver = sender.receivers.find(r => r.id === receiverId);
+                const receiver = sender.receivers.find((r) => r.id === receiverId);
                 if (receiver) {
                   receiver.lastReaction = new Date();
                 }
@@ -249,7 +249,7 @@ app
           log.debug(`connection closed ${roomId}`);
           const sender = connections.get(roomId);
           if (sender) {
-            const receiverIndex = sender.receivers?.findIndex(r => r.id === receiverId);
+            const receiverIndex = sender.receivers?.findIndex((r) => r.id === receiverId);
             if (receiverIndex !== -1) {
               sender.receivers?.splice(receiverIndex, 1);
             }
@@ -267,7 +267,7 @@ app
             return;
           }
         },
-        onError: error => {
+        onError: (error) => {
           log.error("WebSocket error: ", error);
         },
       };

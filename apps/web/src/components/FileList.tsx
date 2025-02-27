@@ -52,7 +52,7 @@ export default function FileList({ files, setFiles }: SenderFilesProps) {
               <IconButton
                 icon={<TrashIcon />}
                 onClick={() => {
-                  setFiles(prev => prev.filter(f => f !== file));
+                  setFiles((prev) => prev.filter((f) => f !== file));
                 }}
               />
             </CardFooter>

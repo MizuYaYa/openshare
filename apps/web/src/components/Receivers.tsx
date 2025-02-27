@@ -11,7 +11,7 @@ export default function Receivers({ receivers }: { receivers: ReceiverProps[] })
   return (
     <Wrap gap="xl">
       <For each={receivers} fallback={<Center>受信者がいません</Center>}>
-        {receiver => (
+        {(receiver) => (
           <Indicator key={receiver.id} label="通信中" pingScale={2}>
             <Card>
               <CardHeader>

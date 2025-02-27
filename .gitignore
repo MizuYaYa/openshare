@@ -136,3 +136,6 @@ dist
 # certificate
 *.pem
 *.srl
+
+# react router
+.react-router/

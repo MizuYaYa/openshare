@@ -6,7 +6,7 @@ import type { ClientData, SenderMessage, ServerMessage } from "openshare";
 import { useEffect, useRef, useState } from "react";
 import { browserName, osName } from "react-device-detect";
 
-import FileList from "@/components/Files";
+import FileList from "@/components/FileList";
 import Receivers from "@/components/Receivers";
 import WSSignalingURL from "@/components/sender/WSSignalingURL";
 
@@ -51,7 +51,7 @@ export default function Sender() {
           async function connectionStateHandler() {
             // console.log("connectionState", rtc.connectionState);
             if (rtc.connectionState === "connected") {
-              setReceivers(prev => [...prev, { ...clientData, id, isReady: true }]);
+              setReceivers((prev) => [...prev, { ...clientData, id, isReady: true }]);
             }
           }
 
@@ -93,7 +93,7 @@ export default function Sender() {
           // console.log("connectionState", data.message);
 
           if (data.message.state === "disconnected") {
-            setReceivers(prev => prev.filter(r => r.id !== data.message.id));
+            setReceivers((prev) => prev.filter((r) => r.id !== data.message.id));
             rtcS.current.connections.get(data.message.id)?.connection.close();
             rtcS.current.connections.delete(data.message.id);
           }
@@ -158,14 +158,14 @@ export default function Sender() {
           multiple
           maxSize={maxTransferSize}
           maxFiles={5}
-          onDrop={acceptedFiles => {
+          onDrop={(acceptedFiles) => {
             // console.log("accepted files", acceptedFiles, "rejected files", fileRejections);
 
             const preNumOfFiles = files.length + acceptedFiles.length;
             const preSize = files.reduce((a, c) => a + c.size, 0) + acceptedFiles.reduce((a, c) => a + c.size, 0);
             if (preNumOfFiles <= maxFiles && preSize <= maxTransferSize) {
               // console.log(preNumOfFiles, preSize);
-              setFiles(prev => [...prev, ...acceptedFiles]);
+              setFiles((prev) => [...prev, ...acceptedFiles]);
             } else {
               console.error("File size or number of files exceeded");
               //警告を出す
@@ -211,7 +211,7 @@ export default function Sender() {
             <Button
               size="sm"
               px="xl"
-              disabled={files.length === 0 || receivers.length === 0 || !receivers.every(r => r.isReady)}
+              disabled={files.length === 0 || receivers.length === 0 || !receivers.every((r) => r.isReady)}
               onClick={() => {
                 // console.log("clicked send file button");
                 rtcS.current.sendFiles(files);
