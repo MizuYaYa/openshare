@@ -27,8 +27,8 @@
         ],
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "^\\s+VITE v\\d+\\.\\d+\\.\\d+  ready in \\d+ ms$",
-          "endsPattern": "^\\s+VITE v\\d+\\.\\d+\\.\\d+  ready in \\d+ ms$"
+          "beginsPattern": "^.+  press h \\+ enter to show help$",
+          "endsPattern": "^.+  press h \\+ enter to show help$"
         }
       },
       "options": {
