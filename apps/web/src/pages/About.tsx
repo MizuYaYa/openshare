@@ -7,7 +7,7 @@ export default function About() {
       <Center>
         <Box mr="xl">
           <Heading>Open Share</Heading>
-          <Text>v0.2.1</Text>
+          <Text>v{import.meta.env.APP_VERSION}</Text>
         </Box>
         <NativeImg src={openShareLogo} h="xs" />
       </Center>

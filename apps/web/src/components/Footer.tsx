@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <Box as="footer">
       <Heading>Open Share</Heading>
-      <Text>v0.2.1</Text>
+      <Text>v{import.meta.env.APP_VERSION}</Text>
     </Box>
   );
 }
