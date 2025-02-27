@@ -8,11 +8,7 @@
   "formatter": {
     "useEditorconfig": true,
     "indentStyle": "space",
-    "indentWidth": 2,
-    "lineEnding": "lf",
-    "lineWidth": 120,
-    "attributePosition": "auto",
-    "bracketSpacing": true
+    "lineWidth": 120
   },
   "linter": {
     "rules": {
@@ -25,16 +21,17 @@
           "options": {
             "strictCase": false
           }
+        },
+        "useFilenamingConvention": {
+          "level": "warn",
+          "options": {
+            "strictCase": false
+          }
         }
       },
       "correctness": {
         "noUndeclaredDependencies": "off"
       }
-    }
-  },
-  "javascript": {
-    "formatter": {
-      "arrowParentheses": "asNeeded"
     }
   },
   "overrides": [

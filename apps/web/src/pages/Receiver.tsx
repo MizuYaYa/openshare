@@ -46,7 +46,7 @@ export default function Receiver() {
     const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/connect/${roomId}`);
     let rtc: RTCPeerConnection;
 
-    setWsState(ws.readyState)
+    setWsState(ws.readyState);
 
     async function openHandler() {
       // console.log("Connection opened");
@@ -66,7 +66,7 @@ export default function Receiver() {
       function connectionStateHandler() {
         // console.log("Connection state change", rtc?.connectionState);
 
-        setSenderStatus(prev => ({ ...prev, rtcState: rtc?.connectionState }));
+        setSenderStatus((prev) => ({ ...prev, rtcState: rtc?.connectionState }));
         if (rtc?.connectionState === "closed") {
           rtc?.close();
         }
@@ -78,7 +78,7 @@ export default function Receiver() {
 
       function dataChannelMessageHandler(event: MessageEvent) {
         if (event.data instanceof ArrayBuffer) {
-          const file = Array.from(files.current.values()).find(file => file.isPending);
+          const file = Array.from(files.current.values()).find((file) => file.isPending);
           if (!file) {
             throw new Error("file is empty");
           }
@@ -89,8 +89,8 @@ export default function Receiver() {
           // console.log(file);
           if (file.size === file.receiveSize) {
             file.isPending = false;
-            setReceiveFiles(files =>
-              files.map(rFile => (rFile.name === file.name ? { ...rFile, isPending: false } : rFile)),
+            setReceiveFiles((files) =>
+              files.map((rFile) => (rFile.name === file.name ? { ...rFile, isPending: false } : rFile)),
             );
           }
           return;
@@ -106,7 +106,7 @@ export default function Receiver() {
             isPending: true,
           };
           files.current.add({ ...file, receiveSize: 0, file: [] });
-          setReceiveFiles(files => [...files, { ...file }]);
+          setReceiveFiles((files) => [...files, { ...file }]);
         }
       }
 
@@ -147,14 +147,14 @@ export default function Receiver() {
         case "connectionResponse": {
           if (!data.message.ok) {
             rtc?.close();
-            setSenderStatus(prev => ({ rtcState: prev?.rtcState, isOk: false }));
+            setSenderStatus((prev) => ({ rtcState: prev?.rtcState, isOk: false }));
             throw new Error("connectionResponse is not ok");
           }
           // console.log("set remote description");
           await rtc?.setRemoteDescription(JSON.parse(data.message.sdp));
 
           const responseData = { clientData: data.message.clientData, isOk: true };
-          setSenderStatus(prev => ({ ...prev, ...responseData }));
+          setSenderStatus((prev) => ({ ...prev, ...responseData }));
           break;
         }
 
@@ -167,7 +167,7 @@ export default function Receiver() {
         case "connectionState": {
           if (data.message.state === "disconnected") {
             rtc?.close();
-            setSenderStatus(prev => ({ rtcState: prev?.rtcState, isOk: false, isError: "disconnected" }));
+            setSenderStatus((prev) => ({ rtcState: prev?.rtcState, isOk: false, isError: "disconnected" }));
           }
           break;
         }
@@ -179,6 +179,12 @@ export default function Receiver() {
           if (data.message === "INVALID_ROOM_ID") {
             ws.close();
           }
+          break;
+        }
+
+        case "ping": {
+          const c: ReceiverMessage = { type: "pong" };
+          ws.send(JSON.stringify(c));
           break;
         }
 
@@ -276,7 +282,7 @@ export default function Receiver() {
                   <Button
                     disabled={receiveFiles.isPending}
                     onClick={() => {
-                      const file = Array.from(files.current.values()).find(file => file.name === receiveFiles.name);
+                      const file = Array.from(files.current.values()).find((file) => file.name === receiveFiles.name);
                       const blob = new Blob(file?.file, { type: receiveFiles.type });
                       const src = URL.createObjectURL(blob);
                       const a = document.createElement("a");

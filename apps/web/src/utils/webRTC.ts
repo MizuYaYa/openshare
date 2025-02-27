@@ -31,7 +31,7 @@ export class RTCSession {
   }
 
   private _rtcDataChannel(rtc: RTCPeerConnection): Promise<RTCDataChannel> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       function dataChannelHandler(e: RTCDataChannelEvent) {
         e.channel.binaryType = "arraybuffer";
 
