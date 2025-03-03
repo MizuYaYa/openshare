@@ -53,12 +53,18 @@ export class RTCSession {
         }
         // console.log("send file", file.name);
         this.sendFileInfo(file, connection.dataChannel);
-        await this.sendFileData(file, connection.dataChannel);
+        await this.sendFileDataP(file, connection.dataChannel);
       }
     }
   }
 
-  async sendFileData(file: File, dataChannel: RTCDataChannel) {
+  async sendFileDataP(file: File, dataChannel: RTCDataChannel) {
+    return new Promise<void>((resolve) => {
+      this.sendFileData(file, dataChannel, resolve);
+    });
+  }
+
+  async sendFileData(file: File, dataChannel: RTCDataChannel, resolve: (value: void | PromiseLike<void>) => void) {
     let offset = 0;
     // console.log("send file data", file);
 
@@ -79,6 +85,7 @@ export class RTCSession {
         offset += chunk.byteLength;
         dataChannel.send(chunk);
       }
+      resolve();
     };
     send();
   }
