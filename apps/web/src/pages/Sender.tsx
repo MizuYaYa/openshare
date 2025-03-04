@@ -10,10 +10,28 @@ import FileList from "@/components/FileList";
 import Receivers from "@/components/Receivers";
 import WSSignalingURL from "@/components/sender/WSSignalingURL";
 
+export type QueuedFile = {
+  file: File;
+  start?: Date;
+  end?: Date;
+};
+
+export type SendStatus = "Pending" | "Sending" | "Done";
+export type SendState = {
+  sentByte: number;
+  sendStatus: SendStatus;
+};
+
+export type Receiver = {
+  id: string;
+  isReady: boolean;
+  filesSendState: { [fileName: string]: SendState | undefined };
+} & ClientData;
+
 export default function Sender() {
   const [wsState, setWsState] = useState(0);
-  const [files, setFiles] = useState<File[]>([]);
-  const [receivers, setReceivers] = useState<(ClientData & { id: string; isReady: boolean })[]>([]);
+  const [files, setFiles] = useState<QueuedFile[]>([]);
+  const [receivers, setReceivers] = useState<Receiver[]>([]);
   const [connectURL, setConnectURL] = useState<string>("");
   const rtcS = useRef(new RTCSession());
 
@@ -51,7 +69,7 @@ export default function Sender() {
           async function connectionStateHandler() {
             // console.log("connectionState", rtc.connectionState);
             if (rtc.connectionState === "connected") {
-              setReceivers((prev) => [...prev, { ...clientData, id, isReady: true }]);
+              setReceivers((prev) => [...prev, { ...clientData, id, isReady: true, filesSendState: {} }]);
             }
           }
 
@@ -162,10 +180,10 @@ export default function Sender() {
             // console.log("accepted files", acceptedFiles, "rejected files", fileRejections);
 
             const preNumOfFiles = files.length + acceptedFiles.length;
-            const preSize = files.reduce((a, c) => a + c.size, 0) + acceptedFiles.reduce((a, c) => a + c.size, 0);
+            const preSize = files.reduce((a, c) => a + c.file.size, 0) + acceptedFiles.reduce((a, c) => a + c.size, 0);
             if (preNumOfFiles <= maxFiles && preSize <= maxTransferSize) {
               // console.log(preNumOfFiles, preSize);
-              setFiles((prev) => [...prev, ...acceptedFiles]);
+              setFiles((prev) => [...prev, ...acceptedFiles.map((file) => ({ file }))]);
             } else {
               console.error("File size or number of files exceeded");
               //警告を出す
@@ -196,9 +214,9 @@ export default function Sender() {
               color={files.length === maxFiles ? "yellow.400" : "green.400"}
               aria-label={`${files.length} of ${maxFiles} files`}
             />{" "}
-            <FormatByte value={files.reduce((a, c) => a + c.size, 0)} />
+            <FormatByte value={files.reduce((a, c) => a + c.file.size, 0)} />
           </Heading>
-          <FileList files={files} setFiles={setFiles} />
+          <FileList files={files} setFiles={setFiles} receivers={receivers} />
         </Box>
       </Flex>
       <Flex wrap={{ md: "wrap" }}>
@@ -214,7 +232,7 @@ export default function Sender() {
               disabled={files.length === 0 || receivers.length === 0 || !receivers.every((r) => r.isReady)}
               onClick={() => {
                 // console.log("clicked send file button");
-                rtcS.current.sendFiles(files);
+                rtcS.current.sendFiles(files, setFiles, setReceivers);
               }}
             >
               送信する

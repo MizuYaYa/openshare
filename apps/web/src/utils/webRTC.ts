@@ -1,4 +1,7 @@
 import type { ClientData, ConnectionRequestWithId } from "openshare";
+import type { Dispatch, SetStateAction } from "react";
+
+import type { QueuedFile, Receiver } from "@/pages/Sender";
 
 export class RTCSession {
   connections: Map<string, { clientData: ClientData; connection: RTCPeerConnection; dataChannel?: RTCDataChannel }>;
@@ -45,24 +48,88 @@ export class RTCSession {
     });
   }
 
-  async sendFiles(files: File[]) {
+  async sendFiles(
+    files: QueuedFile[],
+    setFiles: Dispatch<SetStateAction<QueuedFile[]>>,
+    setReceivers: Dispatch<SetStateAction<Receiver[]>>,
+  ) {
     for (const file of files) {
-      for await (const connection of this.connections.values()) {
+      setFiles((prev) =>
+        prev.map((queuedFile) => {
+          if (queuedFile.file === file.file) {
+            return { ...queuedFile, start: new Date(), end: undefined };
+          }
+          return queuedFile;
+        }),
+      );
+      setReceivers((prev) =>
+        prev.map((receiver) => {
+          const fileName = file.file.name;
+          if (receiver.filesSendState[fileName]) {
+            receiver.filesSendState[fileName].sentByte = 0;
+          } else {
+            receiver.filesSendState[fileName] = { sentByte: 0, sendStatus: "Pending" };
+          }
+          return receiver;
+        }),
+      );
+      for await (const [id, connection] of this.connections) {
         if (!connection.dataChannel) {
           throw new Error("dataChannelが無いReceiver");
         }
         // console.log("send file", file.name);
-        this.sendFileInfo(file, connection.dataChannel);
-        await this.sendFileData(file, connection.dataChannel);
+
+        this.sendFileInfo(file.file, connection.dataChannel);
+        await this.sendFileDataP(file, connection.dataChannel, id, setReceivers);
       }
+      setFiles((prev) =>
+        prev.map((queueFile) => {
+          if (queueFile.file === file.file) {
+            return { ...queueFile, end: new Date() };
+          }
+          return queueFile;
+        }),
+      );
     }
   }
 
-  async sendFileData(file: File, dataChannel: RTCDataChannel) {
+  async sendFileDataP(
+    file: QueuedFile,
+    dataChannel: RTCDataChannel,
+    id: string,
+    setReceivers: Dispatch<SetStateAction<Receiver[]>>,
+  ) {
+    return new Promise<void>((resolve) => {
+      this.sendFileData(file, dataChannel, id, setReceivers, resolve);
+    });
+  }
+
+  async sendFileData(
+    file: QueuedFile,
+    dataChannel: RTCDataChannel,
+    id: string,
+    setReceivers: Dispatch<SetStateAction<Receiver[]>>,
+    resolve: (value: void | PromiseLike<void>) => void,
+  ) {
     let offset = 0;
     // console.log("send file data", file);
 
-    const buffer = await file.arrayBuffer();
+    function updateProgress() {
+      setReceivers((prev) =>
+        prev.map((receiver) => {
+          if (receiver.id === id) {
+            const fileName = file.file.name;
+            if (!receiver.filesSendState[fileName] || receiver.filesSendState[fileName].sendStatus !== "Sending") {
+              receiver.filesSendState[fileName] = { sentByte: 0, sendStatus: "Sending" };
+            }
+            receiver.filesSendState[fileName].sentByte = offset;
+          }
+          return receiver;
+        }),
+      );
+    }
+
+    const buffer = await file.file.arrayBuffer();
     const send = () => {
       while (offset < buffer.byteLength) {
         if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
@@ -78,7 +145,24 @@ export class RTCSession {
         const chunk = buffer.slice(offset, offset + this.maxChunkSize);
         offset += chunk.byteLength;
         dataChannel.send(chunk);
+        if (offset % (this.maxChunkSize * 10) === 0) {
+          updateProgress();
+        }
       }
+      updateProgress();
+      setReceivers((prev) =>
+        prev.map((receiver) => {
+          if (receiver.id === id) {
+            const fileName = file.file.name;
+            if (!receiver.filesSendState[fileName]) {
+              throw new Error("sendStateがある必要があるはずなんだけど...");
+            }
+            receiver.filesSendState[fileName].sendStatus = "Done";
+          }
+          return receiver;
+        }),
+      );
+      resolve();
     };
     send();
   }
