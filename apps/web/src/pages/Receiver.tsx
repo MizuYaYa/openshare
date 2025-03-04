@@ -19,6 +19,7 @@ import { browserName, osName } from "react-device-detect";
 import { useParams } from "react-router";
 import { decodeTime } from "ulid";
 
+import AutoTimeUnit from "@/components/AutoTimeUnit";
 import ConnectionState, { type SenderStatus } from "@/components/receiver/ConnectionState";
 
 type ReceiveFile = {
@@ -26,6 +27,9 @@ type ReceiveFile = {
   size: number;
   type: string;
   isPending: boolean;
+  receiveSize: number;
+  start?: Date;
+  end?: Date;
 };
 
 type Files = {
@@ -86,11 +90,22 @@ export default function Receiver() {
           file.file.push(event.data);
           file.receiveSize += event.data.byteLength;
 
+          setReceiveFiles((prev) =>
+            prev.map((receiveFile) => {
+              if (receiveFile.isPending) {
+                receiveFile.receiveSize = file.receiveSize;
+              }
+              return receiveFile;
+            }),
+          );
+
           // console.log(file);
           if (file.size === file.receiveSize) {
             file.isPending = false;
             setReceiveFiles((files) =>
-              files.map((rFile) => (rFile.name === file.name ? { ...rFile, isPending: false } : rFile)),
+              files.map((rFile) =>
+                rFile.name === file.name ? { ...rFile, isPending: false, end: new Date() } : rFile,
+              ),
             );
           }
           return;
@@ -104,9 +119,10 @@ export default function Receiver() {
             size: data.message.size,
             type: data.message.type,
             isPending: true,
+            receiveSize: 0,
           };
-          files.current.add({ ...file, receiveSize: 0, file: [] });
-          setReceiveFiles((files) => [...files, { ...file }]);
+          files.current.add({ ...file, file: [] });
+          setReceiveFiles((files) => [...files, { ...file, start: new Date() }]);
         }
       }
 
@@ -271,33 +287,49 @@ export default function Receiver() {
         <ConnectionState wsState={wsState} senderStatus={senderStatus} />
         <Flex gap="md" wrap="wrap">
           <For each={receiveFiles} fallback={<Box>ファイルがありません</Box>}>
-            {(receiveFiles, i) => (
-              <Card key={i}>
-                <CardHeader>{receiveFiles.name}</CardHeader>
-                <CardBody>
-                  <Progress hasStripe={receiveFiles.isPending} />
-                </CardBody>
-                <CardFooter>
-                  <FormatByte value={receiveFiles.size} />
-                  <Button
-                    disabled={receiveFiles.isPending}
-                    onClick={() => {
-                      const file = Array.from(files.current.values()).find((file) => file.name === receiveFiles.name);
-                      const blob = new Blob(file?.file, { type: receiveFiles.type });
-                      const src = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = src;
-                      a.download = receiveFiles.name;
-                      a.click();
-                      URL.revokeObjectURL(src);
-                    }}
-                    size="xs"
-                  >
-                    保存
-                  </Button>
-                </CardFooter>
-              </Card>
-            )}
+            {(receiveFiles, i) => {
+              const sentPercentage = Number(((receiveFiles.receiveSize / receiveFiles.size) * 100).toFixed(0));
+              return (
+                <Card key={i}>
+                  <CardHeader>{receiveFiles.name}</CardHeader>
+                  <CardBody>
+                    <Box w="full">
+                      <Flex fontSize="sm" justifyContent="space-between">
+                        <Text> {sentPercentage}%</Text>
+                        {receiveFiles.start && receiveFiles.end ? (
+                          <AutoTimeUnit
+                            millisecond={receiveFiles.end.getTime() - receiveFiles.start.getTime()}
+                            maximumFractionDigits={1}
+                          />
+                        ) : (
+                          "???"
+                        )}
+                      </Flex>
+                      <Progress value={sentPercentage} rounded="sm" />
+                    </Box>
+                  </CardBody>
+                  <CardFooter>
+                    <FormatByte value={receiveFiles.size} />
+                    <Button
+                      disabled={receiveFiles.isPending}
+                      onClick={() => {
+                        const file = Array.from(files.current.values()).find((file) => file.name === receiveFiles.name);
+                        const blob = new Blob(file?.file, { type: receiveFiles.type });
+                        const src = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = src;
+                        a.download = receiveFiles.name;
+                        a.click();
+                        URL.revokeObjectURL(src);
+                      }}
+                      size="xs"
+                    >
+                      保存
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            }}
           </For>
         </Flex>
       </Container>
