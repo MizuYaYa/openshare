@@ -44,7 +44,7 @@ const connections = new Map<string, Connection & { receivers: (Connection & { id
 setInterval(() => {
   for (const [roomId, connection] of connections) {
     for (const receiver of connection.receivers) {
-      if (receiver.lastReaction.getTime() + 60000 < Date.now()) {
+      if (receiver.lastReaction.getTime() + 120000 < Date.now()) {
         log.debug(`Connection timeout ${receiver.id}`);
         receiver.ws.close();
       } else {
@@ -52,7 +52,7 @@ setInterval(() => {
         receiver.ws.send(JSON.stringify(c));
       }
     }
-    if (connection.lastReaction.getTime() + 60000 < Date.now()) {
+    if (connection.lastReaction.getTime() + 120000 < Date.now()) {
       log.debug(`Connection timeout ${roomId}`);
       for (const receiver of connection.receivers) {
         const c: ServerMessage = { type: "connectionState", message: { state: "disconnected", id: receiver.id } };
