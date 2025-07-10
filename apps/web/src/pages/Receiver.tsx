@@ -21,6 +21,7 @@ import { decodeTime } from "ulid";
 
 import AutoTimeUnit from "@/components/AutoTimeUnit";
 import ConnectionState, { type SenderStatus } from "@/components/receiver/ConnectionState";
+import { getReceiveFileHandle } from "@/utils/opfs";
 
 type ReceiveFile = {
   name: string;
@@ -35,14 +36,24 @@ type ReceiveFile = {
 type Files = {
   receiveSize: number;
   file: ArrayBuffer[];
+  opfs: false;
 } & ReceiveFile;
+
+type FilesForOpfsBrowser = {
+  receiveSize: number;
+  writableFileStream: FileSystemWritableFileStream;
+  opfs: true;
+} & ReceiveFile;
+
+//@ts-ignore
+const opfsBrowser = typeof showSaveFilePicker === "function";
 
 export default function Receiver() {
   const { roomId } = useParams();
   const [receiveFiles, setReceiveFiles] = useState<ReceiveFile[]>([]);
   const [wsState, setWsState] = useState(0);
   const [senderStatus, setSenderStatus] = useState<SenderStatus>();
-  const files = useRef(new Set<Files>());
+  const files = useRef(new Set<FilesForOpfsBrowser | Files>());
 
   useEffect(() => {
     const controller = new AbortController();
@@ -80,14 +91,18 @@ export default function Receiver() {
         // console.log("DataChannel opened");
       }
 
-      function dataChannelMessageHandler(event: MessageEvent) {
+      async function dataChannelMessageHandler(event: MessageEvent) {
         if (event.data instanceof ArrayBuffer) {
           const file = Array.from(files.current.values()).find((file) => file.isPending);
           if (!file) {
             throw new Error("file is empty");
           }
 
-          file.file.push(event.data);
+          if (file.opfs) {
+            await file.writableFileStream.write(event.data);
+          } else {
+            file.file.push(event.data);
+          }
           file.receiveSize += event.data.byteLength;
 
           setReceiveFiles((prev) =>
@@ -102,6 +117,9 @@ export default function Receiver() {
           // console.log(file);
           if (file.size === file.receiveSize) {
             file.isPending = false;
+            if (file.opfs) {
+              await file.writableFileStream.close();
+            }
             setReceiveFiles((files) =>
               files.map((rFile) =>
                 rFile.name === file.name ? { ...rFile, isPending: false, end: new Date() } : rFile,
@@ -121,7 +139,12 @@ export default function Receiver() {
             isPending: true,
             receiveSize: 0,
           };
-          files.current.add({ ...file, file: [] });
+          if (opfsBrowser) {
+            const fileHandle = await getReceiveFileHandle(file.name, { create: true });
+            files.current.add({ ...file, writableFileStream: await fileHandle.createWritable(), opfs: true });
+          } else {
+            files.current.add({ ...file, file: [], opfs: false });
+          }
           setReceiveFiles((files) => [...files, { ...file, start: new Date() }]);
         }
       }
@@ -312,15 +335,29 @@ export default function Receiver() {
                     <FormatByte value={receiveFiles.size} />
                     <Button
                       disabled={receiveFiles.isPending}
-                      onClick={() => {
+                      onClick={async () => {
                         const file = Array.from(files.current.values()).find((file) => file.name === receiveFiles.name);
-                        const blob = new Blob(file?.file, { type: receiveFiles.type });
-                        const src = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = src;
-                        a.download = receiveFiles.name;
-                        a.click();
-                        URL.revokeObjectURL(src);
+                        if (file?.opfs) {
+                          const accept = {
+                            [receiveFiles.type]: [receiveFiles.name.slice(receiveFiles.name.lastIndexOf("."))],
+                          };
+
+                          //@ts-ignore: experimental https://developer.mozilla.org/docs/Web/API/Window/showSaveFilePicker
+                          const osFileHandle: FileSystemFileHandle = await showSaveFilePicker({
+                            suggestedName: receiveFiles.name,
+                            types: [{ accept }],
+                          });
+                          const fileHandle = await getReceiveFileHandle(file.name);
+                          await (await fileHandle.getFile()).stream().pipeTo(await osFileHandle.createWritable());
+                        } else {
+                          const blob = new Blob(file?.file, { type: receiveFiles.type });
+                          const src = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = src;
+                          a.download = receiveFiles.name;
+                          a.click();
+                          URL.revokeObjectURL(src);
+                        }
                       }}
                       size="xs"
                     >
