@@ -105,14 +105,16 @@ export default function Receiver() {
           }
           file.receiveSize += event.data.byteLength;
 
-          setReceiveFiles((prev) =>
-            prev.map((receiveFile) => {
-              if (receiveFile.isPending) {
-                receiveFile.receiveSize = file.receiveSize;
-              }
-              return receiveFile;
-            }),
-          );
+          if (file.receiveSize % (Math.floor(file.size / event.data.byteLength / 100) * event.data.byteLength) === 0) {
+            setReceiveFiles((prev) =>
+              prev.map((receiveFile) => {
+                if (receiveFile.isPending) {
+                  receiveFile.receiveSize = file.receiveSize;
+                }
+                return receiveFile;
+              }),
+            );
+          }
 
           // console.log(file);
           if (file.size === file.receiveSize) {
@@ -122,7 +124,9 @@ export default function Receiver() {
             }
             setReceiveFiles((files) =>
               files.map((rFile) =>
-                rFile.name === file.name ? { ...rFile, isPending: false, end: new Date() } : rFile,
+                rFile.name === file.name
+                  ? { ...rFile, isPending: false, end: new Date(), receiveSize: file.receiveSize }
+                  : rFile,
               ),
             );
           }

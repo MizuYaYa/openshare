@@ -144,7 +144,7 @@ export class RTCSession {
         const chunk = file.file.slice(offset, offset + this.maxChunkSize);
         offset += chunk.size;
         dataChannel.send(await chunk.arrayBuffer());
-        if (offset % (this.maxChunkSize * 10) === 0) {
+        if (offset % (Math.floor(file.file.size / this.maxChunkSize / 100) * this.maxChunkSize) === 0) {
           updateProgress();
         }
       }
