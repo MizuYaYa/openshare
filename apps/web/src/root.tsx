@@ -1,9 +1,10 @@
 import { ColorModeScript, UIProvider, defaultConfig } from "@yamada-ui/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import type { Route } from "./+types/root.ts";
 
 import LoadingScreen from "@/components/LoadingScreen";
+import { getReceiveTempDirHandle } from "./utils/opfs.ts";
 
 export const links: Route.LinksFunction = () => [
   {
@@ -14,6 +15,18 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    (async () => {
+      const receiveTempDir = await getReceiveTempDirHandle();
+      let deletedCount = 0;
+      for await (const fileName of receiveTempDir.keys()) {
+        receiveTempDir.removeEntry(fileName);
+        deletedCount++;
+      }
+      console.log(deletedCount ? `過去に受信した${deletedCount}個のファイルを削除` : "削除ファイルなし");
+    })();
+  }, []);
+
   return (
     <html lang="ja" suppressHydrationWarning>
       <head>

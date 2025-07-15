@@ -129,9 +129,8 @@ export class RTCSession {
       );
     }
 
-    const buffer = await file.file.arrayBuffer();
-    const send = () => {
-      while (offset < buffer.byteLength) {
+    const send = async () => {
+      while (offset < file.file.size) {
         if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
           // console.log("bufferedAmount", dataChannel.bufferedAmount);
           if (!dataChannel.onbufferedamountlow) {
@@ -142,10 +141,10 @@ export class RTCSession {
           }
           return;
         }
-        const chunk = buffer.slice(offset, offset + this.maxChunkSize);
-        offset += chunk.byteLength;
-        dataChannel.send(chunk);
-        if (offset % (this.maxChunkSize * 10) === 0) {
+        const chunk = file.file.slice(offset, offset + this.maxChunkSize);
+        offset += chunk.size;
+        dataChannel.send(await chunk.arrayBuffer());
+        if (offset % (Math.floor(file.file.size / this.maxChunkSize / 100) * this.maxChunkSize) === 0) {
           updateProgress();
         }
       }
@@ -164,7 +163,7 @@ export class RTCSession {
       );
       resolve();
     };
-    send();
+    await send();
   }
 
   sendFileInfo(file: File, dataChannel: RTCDataChannel) {

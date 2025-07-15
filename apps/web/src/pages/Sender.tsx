@@ -166,7 +166,6 @@ export default function Sender() {
     return cleanUp;
   }, []);
 
-  const maxTransferSize = 1000 ** 3;
   const maxFiles = 5;
 
   return (
@@ -174,14 +173,12 @@ export default function Sender() {
       <Flex gap={{ base: "xl", md: "sm" }} wrap={{ base: "nowrap", md: "wrap" }}>
         <Dropzone
           multiple
-          maxSize={maxTransferSize}
           maxFiles={5}
           onDrop={(acceptedFiles) => {
             // console.log("accepted files", acceptedFiles, "rejected files", fileRejections);
 
             const preNumOfFiles = files.length + acceptedFiles.length;
-            const preSize = files.reduce((a, c) => a + c.file.size, 0) + acceptedFiles.reduce((a, c) => a + c.size, 0);
-            if (preNumOfFiles <= maxFiles && preSize <= maxTransferSize) {
+            if (preNumOfFiles <= maxFiles) {
               // console.log(preNumOfFiles, preSize);
               setFiles((prev) => [...prev, ...acceptedFiles.map((file) => ({ file }))]);
             } else {
@@ -196,9 +193,6 @@ export default function Sender() {
         >
           <Text fontSize="xl">
             ドラッグ&ドロップかクリックしてファイルを追加
-            <br />
-            最大
-            <FormatByte value={maxTransferSize} />
             <br />
             {maxFiles}ファイルまで
           </Text>
