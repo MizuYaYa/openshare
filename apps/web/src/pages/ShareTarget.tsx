@@ -1,0 +1,232 @@
+import { RTCSession } from "@/utils/webRTC";
+import { ArrowUpFromLineIcon, FileIcon } from "@yamada-ui/lucide";
+import { Box, Button, Container, Flex, FormatByte, Heading, Rating } from "@yamada-ui/react";
+import type { ClientData, SenderMessage, ServerMessage } from "openshare";
+import { useEffect, useRef, useState } from "react";
+import { browserName, osName } from "react-device-detect";
+
+import FileList from "@/components/FileList";
+import Receivers from "@/components/Receivers";
+import WSSignalingURL from "@/components/sender/WSSignalingURL";
+import NotFound from "@/pages/NotFound";
+
+export type QueuedFile = {
+  file: File;
+  start?: Date;
+  end?: Date;
+};
+
+export type SendStatus = "Pending" | "Sending" | "Done";
+export type SendState = {
+  sentByte: number;
+  sendStatus: SendStatus;
+};
+
+export type Receiver = {
+  id: string;
+  isReady: boolean;
+  filesSendState: { [fileName: string]: SendState | undefined };
+} & ClientData;
+
+export default function ShareTarget() {
+  return matchMedia("(display-mode: standalone)").matches ? <ShareTargetContent /> : <NotFound />;
+}
+
+function ShareTargetContent() {
+  const [wsState, setWsState] = useState(0);
+  const [files, setFiles] = useState<QueuedFile[]>([]);
+  const [receivers, setReceivers] = useState<Receiver[]>([]);
+  const [connectURL, setConnectURL] = useState<string>("");
+  const rtcS = useRef(new RTCSession());
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    const ws = new WebSocket(`${import.meta.env.VITE_WS_API_URL}/host`);
+    setWsState(ws.readyState);
+
+    const param = new URL(location.href).searchParams.get("id") || "";
+    (async () => {
+      const root = await navigator.storage.getDirectory();
+      const shareTargetFolder = await root.getDirectoryHandle("share_target_temp");
+      const oneTimeFolder = await shareTargetFolder.getDirectoryHandle(param);
+      const Files: File[] = [];
+      for await (const name of oneTimeFolder.keys()) {
+        const fileHandle = await oneTimeFolder.getFileHandle(name);
+        Files.push(await fileHandle.getFile());
+      }
+      setFiles(Files.map((file) => ({ file })));
+    })();
+
+    function openHandler() {
+      // console.log("Connection opened");
+
+      setWsState(ws.readyState);
+      const c: SenderMessage = { type: "clientData", message: { os: osName, browser: browserName } };
+      ws.send(JSON.stringify(c));
+    }
+
+    async function messageHandler(event: MessageEvent) {
+      // console.log("Message from server: ", JSON.parse(event.data));
+      const data: ServerMessage = JSON.parse(event.data);
+      switch (data.type) {
+        case "roomId":
+          setConnectURL(`${location.origin}/connect/${data.message}`);
+          break;
+
+        case "connectionRequest": {
+          const rtc = rtcS.current.newConnection(data.message);
+          await rtc.setRemoteDescription(JSON.parse(data.message.sdp));
+          const sdp = await rtc.createAnswer();
+          await rtc.setLocalDescription(sdp);
+          rtcS.current.setDataChannel(data.message.id, rtc);
+
+          const { clientData, id } = data.message;
+
+          async function connectionStateHandler() {
+            // console.log("connectionState", rtc.connectionState);
+            if (rtc.connectionState === "connected") {
+              setReceivers((prev) => [...prev, { ...clientData, id, isReady: true, filesSendState: {} }]);
+            }
+          }
+
+          function iceHandler(event: RTCPeerConnectionIceEvent) {
+            if (event.candidate) {
+              // console.log("onicecandidate", event.candidate);
+
+              const c: SenderMessage = {
+                type: "ice",
+                message: { ice: JSON.stringify(event.candidate), id },
+              };
+              ws.send(JSON.stringify(c));
+            }
+          }
+          rtc.addEventListener("connectionstatechange", connectionStateHandler, { signal });
+          rtc.addEventListener("icecandidate", iceHandler, { signal });
+
+          const c: SenderMessage = {
+            type: "connectionResponse",
+            message: { ok: true, sdp: JSON.stringify(sdp), receiverId: data.message.id },
+          };
+          ws.send(JSON.stringify(c));
+          break;
+        }
+
+        case "ice": {
+          if (!data.message?.id) {
+            throw new Error("id is empty");
+          }
+          const rtc = rtcS.current.connections.get(data.message.id)?.connection;
+          if (!rtc) {
+            throw new Error("rtc is empty");
+          }
+          await rtc.addIceCandidate(JSON.parse(data.message.ice));
+          break;
+        }
+
+        case "connectionState": {
+          // console.log("connectionState", data.message);
+
+          if (data.message.state === "disconnected") {
+            setReceivers((prev) => prev.filter((r) => r.id !== data.message.id));
+            rtcS.current.connections.get(data.message.id)?.connection.close();
+            rtcS.current.connections.delete(data.message.id);
+          }
+          break;
+        }
+
+        case "turn": {
+          rtcS.current.iceServer = data.message;
+          break;
+        }
+
+        case "ping": {
+          const c: SenderMessage = { type: "pong" };
+          ws.send(JSON.stringify(c));
+          break;
+        }
+
+        default:
+          break;
+      }
+    }
+
+    function closeHandler() {
+      // console.log("Connection closed");
+      setConnectURL("");
+      setWsState(ws.readyState);
+      for (const [_, { connection }] of rtcS.current.connections) {
+        connection.close();
+      }
+    }
+
+    function errorHandler(error: Event) {
+      console.error("event WebSocket error:", error);
+      setConnectURL("");
+      setWsState(ws.readyState);
+    }
+
+    ws.addEventListener("open", openHandler, { signal });
+    ws.addEventListener("message", messageHandler, { signal });
+    ws.addEventListener("close", closeHandler, { signal });
+    ws.addEventListener("error", errorHandler, { signal });
+
+    function cleanUp() {
+      controller.abort("Sender page unmounted");
+      setConnectURL("");
+      ws.close();
+      setWsState(ws.readyState);
+      for (const [_, { connection }] of rtcS.current.connections) {
+        connection.close();
+      }
+    }
+    return cleanUp;
+  }, []);
+
+  const maxFiles = 5;
+
+  return (
+    <Container>
+      <Flex gap={{ base: "xl", md: "sm" }} wrap={{ base: "nowrap", md: "wrap" }}>
+        <Box minW={{ base: "lg", lg: "sm", md: "full" }} flexGrow={1}>
+          <Heading fontSize="md" m="sm" display="flex" gap="sm" alignItems="center" whiteSpace="nowrap">
+            <Rating
+              readOnly
+              items={maxFiles}
+              value={files.length}
+              emptyIcon={<FileIcon />}
+              filledIcon={<FileIcon />}
+              color={files.length === maxFiles ? "yellow.400" : "green.400"}
+              aria-label={`${files.length} of ${maxFiles} files`}
+            />{" "}
+            <FormatByte value={files.reduce((a, c) => a + c.file.size, 0)} />
+          </Heading>
+          <FileList files={files} setFiles={setFiles} receivers={receivers} />
+        </Box>
+      </Flex>
+      <Flex wrap={{ md: "wrap" }}>
+        <WSSignalingURL connectURL={connectURL} wsState={wsState} />
+        <Box p="md">
+          <Flex gapX="md" mb="lg" alignItems="center" wrap={{ sm: "wrap" }}>
+            <Heading fontSize="xl" p="xs" whiteSpace="nowrap">
+              受信者
+            </Heading>
+            <Button
+              size="sm"
+              px="xl"
+              disabled={files.length === 0 || receivers.length === 0 || !receivers.every((r) => r.isReady)}
+              onClick={() => {
+                // console.log("clicked send file button");
+                rtcS.current.sendFiles(files, setFiles, setReceivers);
+              }}
+            >
+              送信する
+              <ArrowUpFromLineIcon />
+            </Button>
+          </Flex>
+          <Receivers receivers={receivers} />
+        </Box>
+      </Flex>
+    </Container>
+  );
+}
