@@ -12,6 +12,10 @@ export const links: Route.LinksFunction = () => [
     href: "/openshare-fav.svg",
     type: "image/svg+xml",
   },
+  {
+    rel: "manifest",
+    href: "/manifest.json",
+  },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
