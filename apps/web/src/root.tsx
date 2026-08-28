@@ -12,6 +12,10 @@ export const links: Route.LinksFunction = () => [
     href: "/openshare-fav.svg",
     type: "image/svg+xml",
   },
+  {
+    rel: "manifest",
+    href: "/manifest.json",
+  },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -24,6 +28,19 @@ export function Layout({ children }: { children: ReactNode }) {
         deletedCount++;
       }
       console.log(deletedCount ? `過去に受信した${deletedCount}個のファイルを削除` : "削除ファイルなし");
+
+      const root = await navigator.storage.getDirectory();
+      const shareTargetFolder = await root.getDirectoryHandle("share_target_temp", { create: true });
+      let deletedSTCount = 0;
+      const param = new URL(location.href).searchParams.get("id") || "";
+      for await (const dirName of shareTargetFolder.keys()) {
+        if (dirName === param) {
+          continue;
+        }
+        shareTargetFolder.removeEntry(dirName, { recursive: true });
+        deletedSTCount++;
+      }
+      console.log(deletedSTCount ? `過去にOS UI経由で保存した${deletedSTCount}個のファイルを削除` : "削除ファイルなし");
     })();
   }, []);
 

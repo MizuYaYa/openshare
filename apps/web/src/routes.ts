@@ -4,6 +4,7 @@ export default [
   layout("./layouts/AppLayout.tsx", [
     index("./pages/Sender.tsx"),
     route("/connect/:roomId", "./pages/Receiver.tsx"),
+    route("/share-target", "./pages/ShareTarget.tsx"),
     route("*", "./pages/NotFound.tsx"),
   ]),
   route("/about", "./pages/About.tsx"),

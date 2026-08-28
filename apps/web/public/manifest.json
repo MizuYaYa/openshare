@@ -1,0 +1,30 @@
+{
+  "name": "Open Share",
+  "start_url": "/",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "openshare-fav.svg",
+      "sizes": "512x512"
+    },
+    {
+      "src": "openshare-fav.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/share-target-handler",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "files",
+          "accept": ["*/*"]
+        }
+      ]
+    }
+  }
+}
